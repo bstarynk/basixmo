@@ -1,0 +1,15 @@
+*.o
+*.sqlite
+*~
+*%
+*.gch
+*.pch
+bxmo
+*.so
+*.a
+*tmp
+*.orig
+*.ii
+*.i
+core
+_timestamp.c
