@@ -108,11 +108,11 @@ __attribute__ ((format (strftime, 3, 0)));
 
 extern "C" void bxo_backtracestr_at (const char*fil, int lin, const std::string&msg);
 
-#define BXO_BACKTRACELOG_AT(Fil,Lin,Log) do { \
-    std::ostringstream _out_##Lin;    \
-    _out_##Lin << Log << std::flush;    \
-    bxo_backtracestr_at((Fil), (Lin),   \
-      _out_##Lin.str());  \
+#define BXO_BACKTRACELOG_AT(Fil,Lin,Log) do {   \
+    std::ostringstream _out_##Lin;              \
+    _out_##Lin << Log << std::flush;            \
+    bxo_backtracestr_at((Fil), (Lin),           \
+      _out_##Lin.str());                        \
   } while(0)
 #define BXO_BACKTRACELOG_AT_BIS(Fil,Lin,Log) \
   BXO_BACKTRACELOG_AT(Fil,Lin,Log)
@@ -121,6 +121,9 @@ extern "C" void bxo_backtracestr_at (const char*fil, int lin, const std::string&
 
 
 typedef uint32_t BxoHash_t;
+
+typedef uint32_t Bxo_hid_t;
+typedef uint64_t Bxo_loid_t;
 
 class BxoVal;
 class BxoString;
@@ -224,6 +227,7 @@ protected:
         return false;
     return true;
   }
+  bool less_than_sequence(const BxoSequence&r) const;
 public:
   BxoHash_t hash()const
   {
@@ -233,7 +237,8 @@ public:
   {
     return _len;
   };
-};
+};        // end class BxoSequence
+
 class BxoSet : public BxoSequence
 {
   friend class BxoVal;
@@ -371,12 +376,19 @@ struct BxoHashObjSharedPtr
   inline size_t operator() (const std::shared_ptr<BxoObj>& po) const;
 };
 
+struct BxoLessObjSharedPtr
+{
+  inline bool operator() (const std::shared_ptr<BxoObj>&lp, const std::shared_ptr<BxoObj>&rp) const;
+};
+
 class BxoPayload;
 class BxoObj
 {
   friend class BxoVal;
   const BxoHash_t _hash;
   bool _gcmark;
+  const Bxo_hid_t _hid;
+  const Bxo_loid_t _loid;
   std::unordered_map<const std::shared_ptr<BxoObj>,BxoVal,BxoHashObjSharedPtr> _attrh;
   std::vector<BxoVal> _compv;
   /// what about routine payloads?
@@ -386,6 +398,24 @@ public:
     return _hash;
   };
   virtual ~BxoObj() {};
+  bool same(const BxoObj&r) const
+  {
+    return this == &r;
+  };
+  bool less(const BxoObj&r) const
+  {
+    if (this == &r) return false;
+    if (_hid >= r._hid) return false;
+    if (_hid < r._hid) return true;
+    return _loid < r._loid;
+  };
+  bool less_or_equal(const BxoObj&r) const
+  {
+    if (this == &r) return true;
+    if (_hid >= r._hid) return false;
+    if (_hid < r._hid) return true;
+    return _loid <= r._loid;
+  }
 };        // end class BxoObj
 
 size_t
@@ -394,6 +424,21 @@ BxoHashObjSharedPtr::operator() (const std::shared_ptr<BxoObj>& po) const
   if (!po) return 0;
   else return po->hash();
 };
+
+bool BxoLessObjSharedPtr::operator() (const std::shared_ptr<BxoObj>&lp, const std::shared_ptr<BxoObj>&rp) const
+{
+  if (!lp)
+    {
+      return !rp;
+    };
+  if (!rp) return false;
+  return lp->less(*rp);
+}
+
+bool BxoSequence::less_than_sequence(const BxoSequence&r) const
+{
+  return std::lexicographical_compare(_seq+0, _seq+_len, r._seq+0, r._seq+r._len, BxoLessObjSharedPtr {});
+}
 
 bool BxoVal::operator == (const BxoVal&r) const
 {
