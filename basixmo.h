@@ -28,6 +28,10 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <set>
+#include <map>
+#include <vector>
+#include <unordered_map>
 
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
@@ -100,8 +104,6 @@ extern "C" double bxo_thread_cpu_time (void);
 extern "C" char *bxo_strftime_centi (char *buf, size_t len, const char *fmt, double ti)
 __attribute__ ((format (strftime, 3, 0)));
 
-class BxoData;
-
 #define BXO_EMPTY_SLOT ((void*)(2*sizeof(void*)))
 
 extern "C" void bxo_backtracestr_at (const char*fil, int lin, const std::string&msg);
@@ -117,93 +119,305 @@ extern "C" void bxo_backtracestr_at (const char*fil, int lin, const std::string&
 #define BXO_BACKTRACELOG(Log) \
   BXO_BACKTRACELOG_AT(__FILE__,__LINE__,Log)
 
+
+typedef uint32_t BxoHash_t;
+
+class BxoVal;
+class BxoString;
+class BxoObj;
+class BxoSet;
+class BxoTuple;
+class BxoMix;
+class BxoLink;
+
+enum class BxoVKind : std::uint8_t
+{
+  NoneK,
+  IntK,
+  DoubleK,
+  StringK,
+  ObjectK,
+  SetK,
+  TupleK,
+  MixK,
+  LinkK
+};
+
 class BxoVal
 {
-  union
-  {
-    intptr_t _int;
-    std::shared_ptr<BxoData> _val;
-    void* _ptr;
-  };
-  //static_assert(sizeof(std::shared_ptr<BxoData>) == sizeof(void*), "check shared_ptr size");
+  /// these classes are subclasses of BxoVal
+  friend class BxoVNone;
+  friend class BxoVInt;
+  friend class BxoVString;
+  friend class BxoVDouble;
+  friend class BxoVObject;
+  friend class BxoVSet;
+  friend class BxoVTuple;
+  friend class BxoVMix;
+  friend class BxoVLink;
+  /// this is the shared object
+  friend class BxoObj;
 public:
-  BxoVal(std::nullptr_t) : _val(nullptr) {};
-  BxoVal(): BxoVal(nullptr) {};
-  template<class BXClass> BxoVal(std::shared_ptr<BXClass>sp): _val(sp)
+  struct TagNone {};
+  struct TagInt {};
+  struct TagString {};
+  struct TagDouble {};
+  struct TagObject {};
+  struct TagSet {};
+  struct TagTuple {};
+  struct TagMix {};
+  struct TagLink {};
+protected:
+  const BxoVKind _kind;
+  const union
   {
-    static_assert( alignof(BXClass) >= sizeof(void*), "bad alignment");
-    if (BXO_UNLIKELY((intptr_t)sp.get() & 1))
-      {
-        BXO_BACKTRACELOG("misasligned " << typeid(BXClass).name() << " @" << (void*)(sp.get()));
-        throw std::logic_error(std::string {"misasligned "}+typeid(BXClass).name());
-      }
+    void* _ptr;
+    const intptr_t _int;
+    const double _dbl;
+    const std::shared_ptr<BxoObj> _obj;
+    const std::unique_ptr<const BxoString> _str;
+    const std::unique_ptr<const BxoSet> _set;
+    const std::unique_ptr<const BxoTuple> _tup;
+    const std::unique_ptr<const BxoMix> _mix;
+    const std::unique_ptr<const BxoLink> _link;
   };
-  BxoVal(intptr_t i) : _int((i*2)|1)
+  BxoVal(TagNone, std::nullptr_t)
+    : _kind(BxoVKind::NoneK), _ptr(nullptr) {};
+  BxoVal(TagInt, intptr_t i)
+    : _kind(BxoVKind::IntK), _int(i) {};
+  //// note: dont allow NaN-s
+  BxoVal(TagDouble, double d)
+    : _kind(std::isnan(d)?BxoVKind::NoneK:BxoVKind::DoubleK), _dbl(std::isnan(d)?0.0:d) {};
+  inline BxoVal(TagString, std::string s);
+  inline BxoVal(TagString, BxoString*);
+  inline BxoVal(TagObject, BxoObj*po);
+  inline BxoVal(BxoObj*po, TagObject);
+  inline BxoVal(TagObject, const std::shared_ptr<BxoObj> op);
+  inline BxoVal(const std::shared_ptr<BxoObj> op, TagObject);
+  inline BxoVal(TagSet, BxoSet*pset);
+  inline BxoVal(TagMix, BxoMix*pmix);
+  inline BxoVal(TagLink, BxoLink*plnk);
+  BxoVal() : BxoVal(TagNone {}, nullptr) {};
+public:
+  inline ~BxoVal();
+  inline bool operator == (const BxoVal&) const;
+};        // end class BxoVal
+
+class BxoSequence
+{
+protected:
+  const BxoHash_t _hash;
+  const unsigned _len;
+  std::shared_ptr<BxoObj> *_seq;
+  BxoSequence(BxoHash_t h, unsigned len, std::shared_ptr<BxoObj> *seq)
+    : _hash(h), _len(len), _seq(new std::shared_ptr<BxoObj>[len])
   {
-    if (BXO_UNLIKELY(i<=INTPTR_MIN/2 || i>=INTPTR_MAX/2))
-      {
-        BXO_BACKTRACELOG("integer out of bounds " << i);
-        throw std::invalid_argument("integer out of bounds");
-      }
-  };
-  bool is_int(void) const
-  {
-    return (_int&1) != 0;
-  };
-  bool is_null(void) const
-  {
-    return _ptr == nullptr;
-  };
-  bool is_empty(void) const
-  {
-    return _ptr == BXO_EMPTY_SLOT;
-  };
-  bool is_cleared(void) const
-  {
-    return is_null() || is_empty();
-  };
-  bool is_data(void) const
-  {
-    return !is_int() && !is_cleared();
-  };
-  ~BxoVal()
-  {
-    if (!is_int()) _val.reset();
-    _ptr= nullptr;
-  };
-  template<class BXClass,class... Args>
-  BxoVal(Args&&... args): BxoVal(std::make_shared<BXClass>(args...)) {};
-  BxoVal(BxoVal&&d)
-  {
-    if (d.is_int()) _int = d._int;
-    else _val = d._val;
-  };
-  BxoVal(const BxoVal& v)
-  {
-    if (v.is_int()) _int = v._int;
-    else _val = v._val;
-  };
-  BxoData& operator*() const
-  {
-    if (!is_data())
-      {
-        BXO_BACKTRACELOG("non data *");
-        throw std::invalid_argument("non data *");
-      }
-    return *_val.get();
+    for (unsigned ix=0; ix<len; ix++)
+      _seq[ix] = seq[ix];
   }
-  BxoData* operator-> () const
+  bool same_sequence(const BxoSequence&r) const
   {
-    if (!is_data())
-      {
-        BXO_BACKTRACELOG("non data ->");
-        throw std::invalid_argument("non data ->");
-      }
-    return _val.get();
+    if (_hash != r._hash) return false;
+    if (_len != r._len) return false;
+    for (unsigned ix=0; ix<_len; ix++)
+      if (_seq[ix].get () != r._seq[ix].get ())
+        return false;
+    return true;
   }
-  BxoData* raw_data() const
+public:
+  BxoHash_t hash()const
   {
-    return _val.get();
+    return _hash;
   };
-};        /* end of BxoVal */
+  unsigned length() const
+  {
+    return _len;
+  };
+};
+class BxoSet : public BxoSequence
+{
+  friend class BxoVal;
+  friend class BxoVSet;
+public:
+  bool same_set(const BxoSet& r) const
+  {
+    return same_sequence(r);
+  }
+};
+
+class BxoTuple : public BxoSequence
+{
+  friend class BxoVal;
+  friend class BxoVTuple;
+public:
+  bool same_tuple(const BxoTuple& r) const
+  {
+    return same_sequence(r);
+  }
+};
+
+class BxoString
+{
+  friend class BxoVal;
+  friend class BxoVString;
+  const BxoHash_t _hash;
+  const std::string _str;
+public:
+  bool same_string(const BxoString&r) const
+  {
+    return _hash == r._hash && _str == r._str;
+  }
+};
+
+class BxoMix
+{
+  friend class BxoVal;
+  friend class BxoVMix;
+  const BxoHash_t _hash;
+  const std::vector<std::shared_ptr<BxoObj>> _objvec;
+  const std::vector<intptr_t> _intvec;
+  const std::vector<double> _dblvec;
+  const std::vector<BxoString> _strvec;
+public:
+  BxoHash_t hash() const
+  {
+    return _hash;
+  };
+  bool same_mix(const BxoMix& r) const
+  {
+    if (_hash != r._hash) return false;
+    if (this == &r) return true;
+    auto obsz = _objvec.size();
+    if (obsz != r._objvec.size()) return false;
+    auto stsz = _strvec.size();
+    if (stsz != r._strvec.size()) return false;
+    auto insz = _intvec.size();
+    if (insz != r._intvec.size()) return false;
+    auto dbsz = _dblvec.size();
+    if (dbsz != r._dblvec.size()) return false;
+    for (size_t obix = 0; obix < obsz; obix++)
+      if (_objvec[obix] != r._objvec[obix])
+        return false;
+    for (size_t inix = 0; inix < insz; inix++)
+      if (_intvec[inix] != r._intvec[inix])
+        return false;
+    for (size_t dbix = 0; dbix < dbsz; dbix++)
+      if (_dblvec[dbix] != r._dblvec[dbix])
+        return false;
+    for (size_t stix = 0; stix < stsz; stix++)
+      if (!_strvec[stix].same_string(r._strvec[stix]))
+        return false;
+    return true;
+  }
+};        // end class BxoMix
+
+class BxoLink
+{
+  const BxoHash_t _hash;
+};
+
+BxoVal::BxoVal(TagObject, BxoObj*po)
+  : _kind(po?BxoVKind::ObjectK:BxoVKind::NoneK), _obj(po) {};
+
+BxoVal::BxoVal(BxoObj*po, TagObject)
+  : _kind(BxoVKind::ObjectK), _obj(po) {};
+
+BxoVal:: BxoVal(TagObject, const std::shared_ptr<BxoObj> op)
+  : _kind(op?BxoVKind::ObjectK:BxoVKind::NoneK), _obj(op) {};
+
+BxoVal:: BxoVal(const std::shared_ptr<BxoObj> op, TagObject)
+  : _kind(BxoVKind::ObjectK), _obj(op) {};
+BxoVal:: BxoVal(TagSet, BxoSet*pset)
+  : _kind(pset?BxoVKind::SetK:BxoVKind::NoneK), _set(pset) {};
+BxoVal:: BxoVal(TagMix, BxoMix*pmix)
+  : _kind(pmix?BxoVKind::MixK:BxoVKind::NoneK), _mix(pmix) {};
+BxoVal:: BxoVal(TagLink, BxoLink*plnk)
+  : _kind(plnk?BxoVKind::LinkK:BxoVKind::NoneK), _link(plnk) {};
+
+BxoVal::~BxoVal()
+{
+  switch(_kind)
+    {
+    case BxoVKind::NoneK:
+    case BxoVKind::IntK:
+    case BxoVKind::DoubleK:
+      break;
+    case BxoVKind::StringK:
+    {
+      _str.~unique_ptr<const BxoString>();
+    }
+    break;
+    case BxoVKind::ObjectK:
+      _obj.~shared_ptr<BxoObj>();
+      break;
+    case BxoVKind::SetK:
+      _set.~unique_ptr<const BxoSet>();
+      break;
+    case BxoVKind::TupleK:
+      _tup.~unique_ptr<const BxoTuple>();
+      break;
+    case BxoVKind::MixK:
+      _mix.~unique_ptr<const BxoMix>();
+      break;
+    case BxoVKind::LinkK:
+      _link.~unique_ptr<const BxoLink>();
+      break;
+    }
+  _ptr = nullptr;
+}
+
+struct BxoHashObjSharedPtr
+{
+  inline size_t operator() (const std::shared_ptr<BxoObj>& po) const;
+};
+
+class BxoPayload;
+class BxoObj
+{
+  friend class BxoVal;
+  const BxoHash_t _hash;
+  bool _gcmark;
+  std::unordered_map<const std::shared_ptr<BxoObj>,BxoVal,BxoHashObjSharedPtr> _attrh;
+  std::vector<BxoVal> _compv;
+  /// what about routine payloads?
+public:
+  BxoHash_t hash()const
+  {
+    return _hash;
+  };
+  virtual ~BxoObj() {};
+};        // end class BxoObj
+
+size_t
+BxoHashObjSharedPtr::operator() (const std::shared_ptr<BxoObj>& po) const
+{
+  if (!po) return 0;
+  else return po->hash();
+};
+
+bool BxoVal::operator == (const BxoVal&r) const
+{
+  if (_kind != r._kind) return false;
+  if (BXO_UNLIKELY(this == &r))
+    return true;
+  switch (_kind)
+    {
+    case BxoVKind::NoneK:
+      return true;
+    case BxoVKind::IntK:
+      return _int == r._int;
+    case BxoVKind::DoubleK:
+      return _dbl == r._dbl;
+    case BxoVKind::StringK:
+      return _str->same_string(*r._str);
+    case BxoVKind::ObjectK:
+      return _obj == r._obj;
+    case BxoVKind::TupleK:
+      return _tup->same_tuple(*r._tup);
+    case BxoVKind::SetK:
+      return _set->same_set(*r._set);
+    case BxoVKind::MixK:
+      return _mix->same_mix(*r._mix);
+    }
+}
 #endif /*BASIXMO_HEADER*/

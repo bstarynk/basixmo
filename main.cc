@@ -125,6 +125,11 @@ int
 main (int argc_main, char **argv_main)
 {
   clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
+  printf("sizeof BxoVal : %zd (align %zd)\n", sizeof(BxoVal), alignof(BxoVal));
+  printf("sizeof BxoObj : %zd (align %zd)\n", sizeof(BxoObj), alignof(BxoObj));
+  printf("sizeof BxoSequence : %zd (align %zd)\n", sizeof(BxoSequence), alignof(BxoSequence));
+  printf("sizeof BxoString : %zd (align %zd)\n", sizeof(BxoString), alignof(BxoString));
+  printf("sizeof BxoMix : %zd (align %zd)\n", sizeof(BxoMix), alignof(BxoMix));
 } // end of main
 
 double

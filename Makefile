@@ -47,11 +47,12 @@ bxmo: $(OBJECTS) _timestamp.o
 	@if [ -f $@ ]; then echo -n makebackup old executable: ' ' ; mv -v $@ $@~ ; fi
 	$(LINK.cc)  $(LINKFLAGS) $(OPTIMFLAGS) -rdynamic $(OBJECTS)  _timestamp.o $(LIBES) -o $@ 
 
+#%.o: %.cc basixmo.h $(GENERATED_HEADERS) | $(shell grep -q $(basename $<)-moc.h $< && echo $(basename $<)-moc.h)
 
 clean:
 	$(RM) *~ *% *.o *.so */*.so *.log */*~ */*.orig *.i *.ii *.orig README.html *#
 	$(RM) core*
-	$(RM) bxmo
+	$(RM) _timestamp.* bxmo
 
 checkgithooks:
 	@for hf in *-githook.sh ; do \
