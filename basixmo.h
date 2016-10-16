@@ -434,6 +434,7 @@ public:
   {
     return str_from_hid_loid(_hid,_loid);
   };
+  static inline BxoHash_t hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
 };        // end class BxoObj
 
 
@@ -531,6 +532,18 @@ BxoHash_t BxoVal::hash() const
     case BxoVKind::SetK:
       return _set->hash();
     }
+}
+
+BxoHash_t
+BxoObj::hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid)
+{
+  if (hid == 0 && loid == 0)
+    return 0;
+  BxoHash_t h = 0;
+  h = (hid % 2500067) ^ ((BxoHash_t) (loid % 357313124579LL));
+  if (BXO_UNLIKELY (h < 128))
+    h = 17 + (hid % 1500043) + (BxoHash_t) (loid % 4500049);
+  return h;
 }
 
 #endif /*BASIXMO_HEADER*/

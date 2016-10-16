@@ -126,3 +126,4 @@ bool BxoObj::cstr_to_hid_loid(const char*buf, Bxo_hid_t* phid, Bxo_loid_t* ploid
     *endp = buf+BXO_CSTRIDLEN+1;
   return true;
 }
+
