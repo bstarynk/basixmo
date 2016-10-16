@@ -193,7 +193,21 @@ protected:
   BxoVal() : BxoVal(TagNone {}, nullptr) {};
 public:
   inline ~BxoVal();
-  inline bool operator == (const BxoVal&) const;
+  inline bool equal(const BxoVal&) const;
+  bool operator == (const BxoVal&r) const
+  {
+    return equal(r);
+  };
+  bool less(const BxoVal&) const;
+  bool less_equal(const BxoVal&) const;
+  bool operator < (const BxoVal&v) const
+  {
+    return less(v);
+  };
+  bool operator <= (const BxoVal&v) const
+  {
+    return less_equal(v);
+  };
   inline BxoHash_t hash() const;
 };        // end class BxoVal
 
@@ -218,7 +232,13 @@ protected:
         return false;
     return true;
   }
-  bool less_than_sequence(const BxoSequence&r) const;
+  inline bool less_than_sequence(const BxoSequence&r) const;
+  bool less_equal_sequence(const BxoSequence&r) const
+  {
+    if (BXO_UNLIKELY(_hash == r._hash))
+      if (same_sequence(r)) return true;
+    return less_than_sequence(r);
+  }
 public:
   BxoHash_t hash()const
   {
@@ -239,6 +259,14 @@ public:
   {
     return same_sequence(r);
   }
+  bool less_than_set(const BxoSet& r) const
+  {
+    return less_than_sequence(r);
+  }
+  bool less_equal_set(const BxoSet& r) const
+  {
+    return less_equal_sequence(r);
+  }
 };        // end of BxoSet
 
 class BxoTuple : public BxoSequence
@@ -249,6 +277,14 @@ public:
   bool same_tuple(const BxoTuple& r) const
   {
     return same_sequence(r);
+  }
+  bool less_than_tuple(const BxoTuple& r) const
+  {
+    return less_than_sequence(r);
+  }
+  bool less_equal_tuple(const BxoTuple& r) const
+  {
+    return less_equal_sequence(r);
   }
 };        // end of BxoTuple
 
@@ -271,6 +307,14 @@ public:
   {
     return _str == s;
   }
+  bool less_than_string(const BxoString&r) const
+  {
+    return _str < r._str;
+  };
+  bool less_equal_string(const BxoString&r) const
+  {
+    return _str <= r._str;
+  };
 };        // end of BxoString
 
 BxoVal::BxoVal(TagObject, BxoObj*po)
@@ -351,7 +395,7 @@ public:
     if (_hid < r._hid) return true;
     return _loid < r._loid;
   };
-  bool less_or_equal(const BxoObj&r) const
+  bool less_equal(const BxoObj&r) const
   {
     if (this == &r) return true;
     if (_hid >= r._hid) return false;
@@ -401,10 +445,14 @@ bool BxoLessObjSharedPtr::operator() (const std::shared_ptr<BxoObj>&lp, const st
 
 bool BxoSequence::less_than_sequence(const BxoSequence&r) const
 {
+  if (BXO_UNLIKELY(_hash == r._hash))
+    {
+      if (same_sequence(r)) return false;
+    }
   return std::lexicographical_compare(_seq+0, _seq+_len, r._seq+0, r._seq+r._len, BxoLessObjSharedPtr {});
 }
 
-bool BxoVal::operator == (const BxoVal&r) const
+bool BxoVal::equal (const BxoVal&r) const
 {
   if (_kind != r._kind) return false;
   if (BXO_UNLIKELY(this == &r))
