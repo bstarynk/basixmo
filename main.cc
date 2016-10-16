@@ -90,6 +90,7 @@ bxo_bt_err_callback (void *data BXO_UNUSED, const char *msg, int errnum)
            errnum == 0 ? "" : strerror (errnum));
 }                               /* end bxo_bt_err_callback */
 
+
 void bxo_backtracestr_at (const char*fil, int lin, const std::string&str)
 {
   double nowti = bxo_clock_time (CLOCK_REALTIME);
@@ -125,11 +126,20 @@ int
 main (int argc_main, char **argv_main)
 {
   clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
-  printf("sizeof BxoVal : %zd (align %zd)\n", sizeof(BxoVal), alignof(BxoVal));
-  printf("sizeof BxoObj : %zd (align %zd)\n", sizeof(BxoObj), alignof(BxoObj));
-  printf("sizeof BxoSequence : %zd (align %zd)\n", sizeof(BxoSequence), alignof(BxoSequence));
-  printf("sizeof BxoString : %zd (align %zd)\n", sizeof(BxoString), alignof(BxoString));
-  printf("sizeof BxoMix : %zd (align %zd)\n", sizeof(BxoMix), alignof(BxoMix));
+  printf("sizeof BxoVal : %zd (align %zd)\n",
+         sizeof(BxoVal), alignof(BxoVal));
+  printf("sizeof BxoObj : %zd (align %zd)\n",
+         sizeof(BxoObj), alignof(BxoObj));
+  printf("sizeof BxoSequence : %zd (align %zd)\n",
+         sizeof(BxoSequence), alignof(BxoSequence));
+  printf("sizeof BxoString : %zd (align %zd)\n",
+         sizeof(BxoString), alignof(BxoString));
+  printf("sizeof shared_ptr<BxoObj> : %zd (align %zd)\n",
+         sizeof(std::shared_ptr<BxoObj>), alignof(std::shared_ptr<BxoObj>));
+  printf("sizeof unique_ptr<BxoSequence> : %zd (align %zd)\n",
+         sizeof(std::unique_ptr<BxoSequence>), alignof(std::unique_ptr<BxoSequence>));
+  printf("sizeof weak_ptr<BxoObj> : %zd (align %zd)\n",
+         sizeof(std::weak_ptr<BxoObj>), alignof(std::weak_ptr<BxoObj>));
 } // end of main
 
 double

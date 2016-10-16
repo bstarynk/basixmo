@@ -1,23 +1,29 @@
 ## file Makefile in basixmo
 ## by Basile Starynkevitch <basile@starynkevitch.net>
 CXX=g++
+CC=gcc
 GCC=gcc
+INDENT= indent
 ASTYLE= astyle
 MD5SUM= md5sum
 SQLITE= sqlite3
 PACKAGES= sqlite3 jsoncpp Qt5Core Qt5Widgets Qt5Gui Qt5Sql
 PKGCONFIG= pkg-config
-CXXOPTIMFLAGS= -g2 -O1
+OPTIMFLAGS= -g2 -O1
+CXXOPTIMFLAGS= $(OPTIMFLAGS)
+COPTIMFLAGS= $(OPTIMFLAGS)
 CXXWARNFLAGS= -Wall -Wextra
 CXXPREPROFLAGS= -I /usr/local/include  $(shell $(PKGCONFIG) --cflags $(PACKAGES))  -I $(shell $(GCC) -print-file-name=include/)
 CXXFLAGS= -std=gnu++14 $(CXXOPTIMFLAGS) $(CXXWARNFLAGS) $(CXXPREPROFLAGS)
-
+CFLAGS= -Wall $(COPTIMFLAGS)
 ASTYLEFLAGS= --style=gnu -s2  --convert-tabs
-CXXSOURCES= $(wildcard *.cc)
+INDENTFLAGS= --gnu-style --no-tabs --honour-newlines
+CXXSOURCES= $(wildcard [a-z]*.cc)
+CSOURCES= $(wildcard [a-z]*.c)
 ## this xmastate basename is "sacred", don't change it
 BASIXMO_STATE=basixmo_state
 SHELLSOURCES= $(sort $(wildcard [a-z]*.sh))
-OBJECTS= $(patsubst %.cc,%.o,$(CXXSOURCES))
+OBJECTS= $(patsubst %.cc,%.o,$(CXXSOURCES)) $(patsubst %.c,%.o,$(CSOURCES))
 GENERATED_HEADERS= $(wildcard _*.h)
 LIBES= -L/usr/local/lib  $(shell $(PKGCONFIG) --libs $(PACKAGES)) -pthread  $(shell $(GCC) -print-file-name=libbacktrace.a) 
 .PHONY: all checkgithooks installgithooks clean dumpstate restorestate indent
@@ -31,10 +37,11 @@ _timestamp.c: Makefile | $(OBJECTS)
 	     | head -1 | tr -d '\n\r\f\"' ; \
 	   echo '";') >> _timestamp.tmp
 	@(echo -n 'const char basixmo_lastgittag[]="'; (git describe --abbrev=0 --all || echo '*notag*') | tr -d '\n\r\f\"'; echo '";') >> _timestamp.tmp
-	(echo -n 'const char*const basixmo_cxxsources[]={'; for sf in $(CXXSOURCES) ; do \
-	  echo -n "\"$$sf\", " ; done ; \
-	echo '(const char*)0};') >> _timestamp.tmp
-	@(echo -n 'const char*const basixmo_shellsources[]={'; for sf in $(SHELLSOURCES) ; do \
+	@(echo -n 'const char*const basixmo_cxxsources[]={'; for sf in $(CXXSOURCES) ; do \
+	  echo -n "\"$$sf\", " ; done ; echo '(const char*)0};' ; \
+	echo -n 'const char*const basixmo_csources[]={'; for sf in $(CSOURCES) ; do \
+	  echo -n "\"$$sf\", " ; done ; echo '(const char*)0};' ; \
+	echo -n 'const char*const basixmo_shellsources[]={'; for sf in $(SHELLSOURCES) ; do \
 	  echo -n "\"$$sf\", " ; done ; \
 	echo '(const char*)0};') >> _timestamp.tmp
 	@(echo -n 'const char basixmo_statebase[]="'; echo -n $(BASIXMO_STATE); echo -n '";') >> _timestamp.tmp
@@ -77,6 +84,9 @@ indent:
 	$(ASTYLE) $(ASTYLEFLAGS) basixmo.h
 	for g in $(wildcard [a-z]*.cc) ; do \
 	  $(ASTYLE) $(ASTYLEFLAGS) $$g ; \
+	done
+	for c in $(wildcard [a-z]*.c) ; do \
+	  $(INDENT) $(INDENTFLAGS) $$c ; \
 	done
 
 
