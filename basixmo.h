@@ -42,6 +42,8 @@
 #include <sched.h>
 #include <syslog.h>
 
+#include "json/json.h"
+
 // common prefix bxo
 
 // mark unlikely conditions to help optimization
@@ -128,6 +130,10 @@ typedef uint32_t BxoHash_t;
 typedef uint32_t Bxo_hid_t;
 typedef uint64_t Bxo_loid_t;
 
+typedef __int128 Bxo_int128_t;
+typedef unsigned __int128 Bxo_uint128_t;
+
+typedef Json::Value BxoJson;
 class BxoVal;
 class BxoString;
 class BxoObj;
@@ -209,6 +215,8 @@ public:
     return less_equal(v);
   };
   inline BxoHash_t hash() const;
+  BxoJson to_json() const;
+  static BxoVal from_json(const BxoJson&);
 };        // end class BxoVal
 
 class BxoSequence
@@ -367,6 +375,10 @@ struct BxoLessObjSharedPtr
 };
 
 class BxoPayload;
+#define BXO_CSTRIDLEN 18        // used length
+#define BXO_CSTRIDSIZ ((BXO_CSTRIDLEN|3)+1)
+#define BXO_CSTRIDSCANF "_%17[A-Za-z0-9]"
+#define BXO_HID_BUCKETMAX 36000
 class BxoObj
 {
   friend class BxoVal;
@@ -402,6 +414,26 @@ public:
     if (_hid < r._hid) return true;
     return _loid <= r._loid;
   }
+  static std::string str_from_hid_loid(Bxo_hid_t hid, Bxo_loid_t loid);
+  static bool cstr_to_hid_loid(const char*cstr, Bxo_hid_t* phid, Bxo_loid_t* ploid, const char**endp=nullptr);
+  static bool str_to_hid_loid(const std::string& str,  Bxo_hid_t* phid, Bxo_loid_t* ploid)
+  {
+    return cstr_to_hid_loid(str.c_str(), phid, ploid);
+  }
+  static unsigned hi_id_bucketnum(Bxo_hid_t hid)
+  {
+    if (hid == 0)
+      return 0;
+    unsigned bn = hid >> 16;
+    if (bn > 0 && bn < BXO_HID_BUCKETMAX)
+      return bn;
+    BXO_BACKTRACELOG("hi_id_bucketnum: bad hid=" << hid);
+    throw std::runtime_error("hi_id_bucketnum: bad hid");
+  }
+  std::string strid() const
+  {
+    return str_from_hid_loid(_hid,_loid);
+  };
 };        // end class BxoObj
 
 
