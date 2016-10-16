@@ -74,7 +74,7 @@ installgithooks:
 dumpstate: $(BASIXMO_STATE).sqlite | basixmo-dump-state.sh
 	./basixmo-dump-state.sh $(BASIXMO_STATE).sqlite $(BASIXMO_STATE).sql
 
-restorestate: | $(BASIXMO_STATE).sqlite
+restorestate: | $(BASIXMO_STATE).sql
 	@if [ -f $(BASIXMO_STATE).sqlite ]; then \
 	  echo makebackup old: ' ' ; mv -b -v  $(BASIXMO_STATE).sqlite  $(BASIXMO_STATE).sqlite~ ; fi
 	$(SQLITE) $(BASIXMO_STATE).sqlite < $(BASIXMO_STATE).sql
