@@ -198,6 +198,7 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
 } // end of BxoVal::from_json
 
 BxoVString::BxoVString(const BxoString&bs)
+  : BxoVal(TagString {},&bs)
 {
 #warning incomplete BxoVString::BxoVString
 }

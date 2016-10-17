@@ -186,16 +186,16 @@ protected:
     void* _ptr;
     intptr_t _int;
     std::shared_ptr<BxoObj> _obj;
-    std::unique_ptr<const BxoString> _str;
-    std::unique_ptr<const BxoSet> _set;
-    std::unique_ptr<const BxoTuple> _tup;
+    std::shared_ptr<const BxoString> _str;
+    std::shared_ptr<const BxoSet> _set;
+    std::shared_ptr<const BxoTuple> _tup;
   };
   BxoVal(TagNone, std::nullptr_t)
     : _kind(BxoVKind::NoneK), _ptr(nullptr) {};
   BxoVal(TagInt, intptr_t i)
     : _kind(BxoVKind::IntK), _int(i) {};
-  inline BxoVal(TagString, std::string s);
-  inline BxoVal(TagString, BxoString*);
+  inline BxoVal(TagString, const std::string& s);
+  inline BxoVal(TagString, const BxoString*);
   inline BxoVal(TagObject, BxoObj*po);
   inline BxoVal(BxoObj*po, TagObject);
   inline BxoVal(TagObject, const std::shared_ptr<BxoObj> op);
@@ -386,13 +386,13 @@ public:
 };        // end of BxoString
 
 
-BxoVal::BxoVal(TagString, std::string s)
+BxoVal::BxoVal(TagString, const std::string& s)
   : _kind(BxoVKind::StringK)
 {
   new(&_str) std::unique_ptr<const BxoString>(new BxoString(s));
 }
 
-BxoVal::BxoVal(TagString, BxoString*bs)
+BxoVal::BxoVal(TagString,const BxoString*bs)
   : _kind(BxoVKind::StringK)
 {
   if (!bs)
@@ -400,7 +400,7 @@ BxoVal::BxoVal(TagString, BxoString*bs)
       BXO_BACKTRACELOG("string BxoVal: null BxoString");
       throw std::runtime_error("string BxoVal: null BxoString");
     }
-  new(&_str) std::unique_ptr<const BxoString>(bs);
+  new(&_str) std::shared_ptr<const BxoString>(bs);
 }
 
 BxoVal::BxoVal(TagObject, BxoObj*po)
@@ -483,17 +483,17 @@ BxoVal::~BxoVal()
       break;
     case BxoVKind::StringK:
     {
-      _str.~unique_ptr<const BxoString>();
+      _str.~shared_ptr<const BxoString>();
     }
     break;
     case BxoVKind::ObjectK:
       _obj.~shared_ptr<BxoObj>();
       break;
     case BxoVKind::SetK:
-      _set.~unique_ptr<const BxoSet>();
+      _set.~shared_ptr<const BxoSet>();
       break;
     case BxoVKind::TupleK:
-      _tup.~unique_ptr<const BxoTuple>();
+      _tup.~shared_ptr<const BxoTuple>();
       break;
     }
   _ptr = nullptr;
