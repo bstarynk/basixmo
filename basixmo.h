@@ -140,7 +140,9 @@ class BxoObj;
 class BxoSet;
 class BxoTuple;
 class BxoDumper;
+class BxoLoader;
 
+#define BXO_SIZE_MAX (INT32_MAX/2)
 enum class BxoVKind : std::uint8_t
 {
   NoneK,
@@ -179,14 +181,14 @@ public:
   struct TagTuple {};
 protected:
   const BxoVKind _kind;
-  const union
+  union
   {
     void* _ptr;
-    const intptr_t _int;
-    const std::shared_ptr<BxoObj> _obj;
-    const std::unique_ptr<const BxoString> _str;
-    const std::unique_ptr<const BxoSet> _set;
-    const std::unique_ptr<const BxoTuple> _tup;
+    intptr_t _int;
+    std::shared_ptr<BxoObj> _obj;
+    std::unique_ptr<const BxoString> _str;
+    std::unique_ptr<const BxoSet> _set;
+    std::unique_ptr<const BxoTuple> _tup;
   };
   BxoVal(TagNone, std::nullptr_t)
     : _kind(BxoVKind::NoneK), _ptr(nullptr) {};
@@ -201,6 +203,8 @@ protected:
   inline BxoVal(TagSet, BxoSet*pset);
   BxoVal() : BxoVal(TagNone {}, nullptr) {};
 public:
+  inline BxoVal(const BxoVal&v);
+  inline BxoVal(BxoVal&&v);
   inline ~BxoVal();
   inline bool equal(const BxoVal&) const;
   bool operator == (const BxoVal&r) const
@@ -219,8 +223,32 @@ public:
   };
   inline BxoHash_t hash() const;
   BxoJson to_json(BxoDumper&) const;
-  static BxoVal from_json(const BxoJson&);
+  static BxoVal from_json(BxoLoader&, const BxoJson&);
 };        // end class BxoVal
+
+class BxoVNone: public BxoVal
+{
+public:
+  BxoVNone() : BxoVal(TagNone {},nullptr) {};
+  ~BxoVNone() = default;
+};        // end BxoVNone
+
+class BxoVInt: public BxoVal
+{
+public:
+  BxoVInt(int64_t i=0): BxoVal(TagInt {},i) {};
+  ~BxoVInt() = default;
+};        // end BxoVInt
+
+
+class BxoVString: public BxoVal
+{
+public:
+  BxoVString(const BxoString&);
+  BxoVString(const char*s, int l= -1);
+  BxoVString(const std::string& str);
+  ~BxoVString() = default;
+};        // end BxoVString
 
 class BxoDumper
 {
@@ -231,7 +259,13 @@ public:
   {
     return obp && is_dumpable(obp.get());
   }
-};        // end class BxoVal
+};        // end class BxoDumper
+
+class BxoLoader
+{
+  virtual ~BxoLoader() {};
+  virtual BxoObj* obj_from_idstr(const std::string&);
+};        // end BxoLoader
 
 class BxoSequence
 {
@@ -317,7 +351,14 @@ class BxoString
   friend class BxoVString;
   const BxoHash_t _hash;
   const std::string _str;
+  BxoString(BxoHash_t h, const std::string str) : _hash(h), _str(str) {};
 public:
+  static BxoHash_t hash_cstring(const char*s, int ln= -1);
+  BxoString(const BxoString&s) : _hash(s._hash), _str(s._str) {};
+  BxoString(const char*s, int l= -1)
+    : BxoString(hash_cstring(s,l),
+                std::string(s?s:"",(l>=0)?l:(s?strlen(s):0))) {};
+  BxoString(const std::string& str): BxoString(str.c_str(), str.size()) {};
   BxoHash_t hash()const
   {
     return _hash;
@@ -344,6 +385,24 @@ public:
   };
 };        // end of BxoString
 
+
+BxoVal::BxoVal(TagString, std::string s)
+  : _kind(BxoVKind::StringK)
+{
+  new(&_str) std::unique_ptr<const BxoString>(new BxoString(s));
+}
+
+BxoVal::BxoVal(TagString, BxoString*bs)
+  : _kind(BxoVKind::StringK)
+{
+  if (!bs)
+    {
+      BXO_BACKTRACELOG("string BxoVal: null BxoString");
+      throw std::runtime_error("string BxoVal: null BxoString");
+    }
+  new(&_str) std::unique_ptr<const BxoString>(bs);
+}
+
 BxoVal::BxoVal(TagObject, BxoObj*po)
   : _kind(po?BxoVKind::ObjectK:BxoVKind::NoneK), _obj(po) {};
 
@@ -357,6 +416,63 @@ BxoVal:: BxoVal(const std::shared_ptr<BxoObj> op, TagObject)
   : _kind(BxoVKind::ObjectK), _obj(op) {};
 BxoVal:: BxoVal(TagSet, BxoSet*pset)
   : _kind(pset?BxoVKind::SetK:BxoVKind::NoneK), _set(pset) {};
+
+
+BxoVal::BxoVal(const BxoVal&v)
+  : _kind(v._kind)
+{
+  switch (v._kind)
+    {
+    case BxoVKind::NoneK:
+      _ptr = nullptr;
+      break;
+    case BxoVKind::IntK:
+      _int = v._int;
+      break;
+    case BxoVKind::StringK:
+      new(&_str) std::unique_ptr<BxoString>(new BxoString(*v._str));
+      break;
+    case BxoVKind::ObjectK:
+      new(&_obj) std::shared_ptr<BxoObj>(v._obj);
+      break;
+    case BxoVKind::SetK:
+      new(&_set) std::unique_ptr<BxoSet>(new BxoSet(*v._set));
+      break;
+    case BxoVKind::TupleK:
+      new(&_tup) std::unique_ptr<BxoTuple>(new BxoTuple(*v._tup));
+      break;
+    }
+} // end BxoVal::BxoVal(const BxoVal&v)
+
+
+BxoVal::BxoVal(BxoVal&&v)
+  : _kind(v._kind)
+{
+  switch (v._kind)
+    {
+    case BxoVKind::NoneK:
+      _ptr = nullptr;
+      break;
+    case BxoVKind::IntK:
+      _int = v._int;
+      break;
+    case BxoVKind::StringK:
+      _str = std::move(v._str);
+      break;
+    case BxoVKind::ObjectK:
+      _obj = std::move(v._obj);
+      break;
+    case BxoVKind::SetK:
+      _set = std::move(v._set);
+      break;
+    case BxoVKind::TupleK:
+      _tup = std::move(v._tup);
+      break;
+    }
+  *const_cast<BxoVKind*>(&v._kind) = BxoVKind::NoneK;
+  v._ptr = nullptr;
+} // end BxoVal::BxoVal(BxoVal&&v)
+
 
 BxoVal::~BxoVal()
 {

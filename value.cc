@@ -81,6 +81,69 @@ BxoSequence::sequence_to_json(BxoDumper&du) const
   return js;
 } // end BxoSequence::sequence_to_json
 
+BxoHash_t BxoString::hash_cstring(const char*s, int ln)
+{
+  if (!s)
+    {
+      if (ln>0)
+        {
+          BXO_BACKTRACELOG("hash_cstring: invalid null string of length:" << ln);
+          throw std::runtime_error("invalid null string to hash");
+        }
+      return 0;
+    }
+  if (ln<0) ln = strlen(s);
+  if (ln>BXO_SIZE_MAX)
+    {
+      char buf[32];
+      memset (buf, 0, sizeof(buf));
+      strncpy(buf, s, sizeof(buf)-1);
+      BXO_BACKTRACELOG("hash_cstring: too long string of " << ln << " bytes: " << buf);
+      throw std::runtime_error("too long string to hash");
+    }
+  int l = ln;
+  BxoHash_t h1 = 0, h2 = ln, h = 0;
+  const char*str = s;
+  while (l > 4)
+    {
+      h1 =
+        (509 * h2 +
+         307 * ((signed char *) str)[0]) ^ (1319 * ((signed char *) str)[1]);
+      h2 =
+        (17 * l + 5 + 5309 * h2) ^ ((3313 * ((signed char *) str)[2]) +
+                                    9337 * ((signed char *) str)[3] + 517);
+      l -= 4;
+      str += 4;
+    }
+  if (l > 0)
+    {
+      h1 = (h1 * 7703) ^ (503 * ((signed char *) str)[0]);
+      if (l > 1)
+        {
+          h2 = (h2 * 7717) ^ (509 * ((signed char *) str)[1]);
+          if (l > 2)
+            {
+              h1 = (h1 * 9323) ^ (11 + 523 * ((signed char *) str)[2]);
+              if (l > 3)
+                {
+                  h2 =
+                    (h2 * 7727 + 127) ^ (313 +
+                                         547 * ((signed char *) str)[3]);
+                }
+            }
+        }
+    }
+  h = (h1 * 29311 + 59) ^ (h2 * 7321 + 120501);
+  if (!h)
+    {
+      h = h1 ? h1 : h2;
+      if (!h)
+        h = (ln & 0xffffff) + 11;
+    }
+  return h;
+} // end  BxoString::hash_cstring
+
+
 BxoJson
 BxoVal::to_json(BxoDumper&du) const
 {
@@ -115,3 +178,26 @@ BxoVal::to_json(BxoDumper&du) const
     }
   return BxoJson::nullSingleton();
 } // end BxoVal::to_json
+
+BxoVal
+BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
+{
+  switch(js.type())
+    {
+    case Json::nullValue:
+      return BxoVNone();
+    case Json::intValue:
+    case Json::uintValue:
+      return BxoVInt(js.asInt64());
+#warning incomplete BxoVal::from_json
+      /**
+      case Json::stringValue:
+      return BxoVString(js.asString());
+      **/
+    }
+} // end of BxoVal::from_json
+
+BxoVString::BxoVString(const BxoString&bs)
+{
+#warning incomplete BxoVString::BxoVString
+}
