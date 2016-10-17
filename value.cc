@@ -62,3 +62,56 @@ bool BxoVal::less_equal(const BxoVal&r) const
     }
   return false;
 } // end BxoVal::less_equal
+
+BxoJson
+BxoSequence::sequence_to_json(BxoDumper&du) const
+{
+  std::vector<BxoJson> vecj;
+  int l = length();
+  vecj.reserve(l);
+  for (int ix=0; ix<l; ix++)
+    {
+      if (_seq[ix] && du.is_dumpable(_seq[ix]))
+        vecj.push_back(_seq[ix]->id_to_json());
+    }
+  BxoJson js = BxoJson(Json::arrayValue);
+  int jlen = vecj.size();
+  js.resize(jlen);
+  for (int ix=0; ix<jlen; ix++) js[ix] = vecj[ix];
+  return js;
+} // end BxoSequence::sequence_to_json
+
+BxoJson
+BxoVal::to_json(BxoDumper&du) const
+{
+  switch (_kind)
+    {
+    case BxoVKind::NoneK:
+      return BxoJson::nullSingleton();
+    case BxoVKind::IntK:
+      return BxoJson((Json::Int64)_int);
+    case BxoVKind::StringK:
+      return BxoJson(_str->string());
+    case BxoVKind::ObjectK:
+      if (du.is_dumpable(_obj))
+        {
+          BxoJson job(Json::objectValue);
+          job["oid"] = _obj->id_to_json();
+          return job;
+        }
+      else return BxoJson::nullSingleton();
+    case BxoVKind::SetK:
+    {
+      BxoJson job(Json::objectValue);
+      job["set"] = _set->sequence_to_json(du);
+      return job;
+    };
+    case BxoVKind::TupleK:
+    {
+      BxoJson job(Json::objectValue);
+      job["tup"] = _set->sequence_to_json(du);
+      return job;
+    };
+    }
+  return BxoJson::nullSingleton();
+} // end BxoVal::to_json

@@ -139,6 +139,7 @@ class BxoString;
 class BxoObj;
 class BxoSet;
 class BxoTuple;
+class BxoDumper;
 
 enum class BxoVKind : std::uint8_t
 {
@@ -167,6 +168,8 @@ class BxoVal
   friend class BxoVTuple;
   /// this is the shared object
   friend class BxoObj;
+  /// the dumper
+  friend class BxoDumper;
 public:
   struct TagNone {};
   struct TagInt {};
@@ -215,8 +218,19 @@ public:
     return less_equal(v);
   };
   inline BxoHash_t hash() const;
-  BxoJson to_json() const;
+  BxoJson to_json(BxoDumper&) const;
   static BxoVal from_json(const BxoJson&);
+};        // end class BxoVal
+
+class BxoDumper
+{
+public:
+  virtual ~BxoDumper() {};
+  virtual bool is_dumpable(BxoObj*);
+  inline bool is_dumpable(std::shared_ptr<BxoObj> obp)
+  {
+    return obp && is_dumpable(obp.get());
+  }
 };        // end class BxoVal
 
 class BxoSequence
@@ -247,6 +261,7 @@ protected:
       if (same_sequence(r)) return true;
     return less_than_sequence(r);
   }
+  BxoJson sequence_to_json(BxoDumper&) const;
 public:
   BxoHash_t hash()const
   {
@@ -306,6 +321,10 @@ public:
   BxoHash_t hash()const
   {
     return _hash;
+  };
+  const std::string&string(void) const
+  {
+    return _str;
   };
   bool same_string(const BxoString&r) const
   {
@@ -430,9 +449,13 @@ public:
     BXO_BACKTRACELOG("hi_id_bucketnum: bad hid=" << hid);
     throw std::runtime_error("hi_id_bucketnum: bad hid");
   }
-  std::string strid() const
+  std::string strid(void) const
   {
     return str_from_hid_loid(_hid,_loid);
+  };
+  BxoJson id_to_json(void) const
+  {
+    return BxoJson(strid());
   };
   static inline BxoHash_t hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
 };        // end class BxoObj
