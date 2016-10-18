@@ -220,3 +220,76 @@ BxoVString::BxoVString(const BxoString&bs)
   : BxoVal(TagString {},&bs)
 {
 }
+
+BxoSet
+BxoSet::the_empty_set {BxoSet::init_hash,0,nullptr};
+
+BxoSet*
+BxoSet::make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs)
+{
+  auto siz = bs.size();
+  if (BXO_UNLIKELY(siz <= 1))
+    {
+      if (siz==0) return &the_empty_set;
+      std::shared_ptr<BxoObj>pob = *bs.begin();
+      if (!pob)
+        {
+          BXO_BACKTRACELOG("make_set: nil element in singleton");
+          throw std::runtime_error("BxoSet::make_set nil element");
+        }
+      auto h = combine_hash(init_hash, *pob);
+      return new BxoSet(h,1,&pob);
+    }
+  else if (BXO_UNLIKELY(siz > BXO_SIZE_MAX))
+    {
+      BXO_BACKTRACELOG("make_set: too big size " << siz);
+      throw std::runtime_error("BxoSet::make_set too big size");
+    }
+  std::vector<std::shared_ptr<BxoObj>> vec {siz};
+  BxoHash_t h = init_hash;
+  for (const auto&p : bs)
+    {
+      if (!p)
+        {
+          BXO_BACKTRACELOG("make_set: nil element");
+          throw std::runtime_error("BxoSet::make_set nil element");
+        }
+      vec.push_back(p);
+      h = combine_hash(h, *p);
+    }
+  h = adjust_hash(h,siz);
+  return new BxoSet(h,siz,vec.data());
+} // end BxoSet::make_set
+
+
+BxoSet*
+BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
+{
+  auto siz = vec.size();
+  if (BXO_UNLIKELY(siz <= 1))
+    {
+    }
+  else if (BXO_UNLIKELY(siz > BXO_SIZE_MAX))
+    {
+      BXO_BACKTRACELOG("make_set: too big size " << siz);
+      throw std::runtime_error("BxoSet::make_set too big size");
+    }
+  std::vector<std::shared_ptr<BxoObj>> copy {siz+1};
+  for (unsigned ix=0; ix<(unsigned)siz; ix++)
+    {
+      if (BXO_UNLIKELY(!vec[ix]))
+        {
+          BXO_BACKTRACELOG("make_set: nil element");
+          throw std::runtime_error("BxoSet::make_set nil element");
+        }
+      copy[ix] = vec[ix];
+    }
+  if (siz>1)
+    std::sort(copy.begin(), copy.end(), BxoLessObjSharedPtr {});
+} // end BxoSet::make_set
+
+BxoVSet::BxoVSet(const BxoSet&bs)
+  : BxoVal(TagSet {},&bs) {}
+
+BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&s)
+  : BxoVal(TagSet {},BxoSet::make_set(s)) {}
