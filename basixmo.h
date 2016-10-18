@@ -29,9 +29,11 @@
 #include <iostream>
 #include <sstream>
 #include <set>
+#include <initializer_list>
 #include <map>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
@@ -250,6 +252,18 @@ public:
   ~BxoVString() = default;
 };        // end BxoVString
 
+class BxoVSet: public BxoVal
+{
+public:
+  ~BxoVSet() = default;
+};        // end BxoVSet
+
+class BxoVTuple: public BxoVal
+{
+public:
+  ~BxoVTuple() = default;
+};        // end BxoVTuple
+
 class BxoDumper
 {
 public:
@@ -263,8 +277,10 @@ public:
 
 class BxoLoader
 {
+public:
   virtual ~BxoLoader() {};
   virtual BxoObj* obj_from_idstr(const std::string&);
+  virtual BxoVal val_from_json(const BxoJson&);
 };        // end BxoLoader
 
 class BxoSequence
@@ -389,7 +405,7 @@ public:
 BxoVal::BxoVal(TagString, const std::string& s)
   : _kind(BxoVKind::StringK)
 {
-  new(&_str) std::unique_ptr<const BxoString>(new BxoString(s));
+  new(&_str) std::shared_ptr<const BxoString>(new BxoString(s));
 }
 
 BxoVal::BxoVal(TagString,const BxoString*bs)
@@ -430,16 +446,16 @@ BxoVal::BxoVal(const BxoVal&v)
       _int = v._int;
       break;
     case BxoVKind::StringK:
-      new(&_str) std::unique_ptr<BxoString>(new BxoString(*v._str));
+      new(&_str) std::shared_ptr<BxoString>(new BxoString(*v._str));
       break;
     case BxoVKind::ObjectK:
       new(&_obj) std::shared_ptr<BxoObj>(v._obj);
       break;
     case BxoVKind::SetK:
-      new(&_set) std::unique_ptr<BxoSet>(new BxoSet(*v._set));
+      new(&_set) std::shared_ptr<BxoSet>(new BxoSet(*v._set));
       break;
     case BxoVKind::TupleK:
-      new(&_tup) std::unique_ptr<BxoTuple>(new BxoTuple(*v._tup));
+      new(&_tup) std::shared_ptr<BxoTuple>(new BxoTuple(*v._tup));
       break;
     }
 } // end BxoVal::BxoVal(const BxoVal&v)

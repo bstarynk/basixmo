@@ -189,16 +189,34 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
     case Json::intValue:
     case Json::uintValue:
       return BxoVInt(js.asInt64());
-#warning incomplete BxoVal::from_json
-      /**
-      case Json::stringValue:
+    case Json::stringValue:
       return BxoVString(js.asString());
-      **/
+    case Json::arrayValue:
+      return ld.val_from_json(js);
+    case Json::objectValue:
+    {
+      if (js.isMember("oid"))
+        {
+        }
+      else if (js.isMember("set"))
+        {
+        }
+      else if (js.isMember("tup"))
+        {
+        }
+    }
+#warning incomplete BxoVal::from_json
     }
 } // end of BxoVal::from_json
+
+
+
+BxoVString::BxoVString(const std::string& s)
+  : BxoVal(TagString {},s)
+{
+}
 
 BxoVString::BxoVString(const BxoString&bs)
   : BxoVal(TagString {},&bs)
 {
-#warning incomplete BxoVString::BxoVString
 }
