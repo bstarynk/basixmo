@@ -59,7 +59,7 @@ BxoSet::load_set(BxoLoader&ld, const BxoJson&js)
                            << jcomp << " at ix=" << ix);
           throw std::runtime_error("BxoSet::load_set invalid jcomp");
         }
-      auto pob = obj_from_idstr(jcomp.toString());
+      auto pob = ld.obj_from_idstr(jcomp.asString());
       if (!pob)
         {
           BXO_BACKTRACELOG("load_set: bad jcomp="
@@ -77,6 +77,7 @@ BxoTuple::load_tuple(BxoLoader&ld, const BxoJson&js)
 {
   if (!js.isArray()) return nullptr;
   std::vector<std::shared_ptr<BxoObject>> vec;
+  auto ln = js.size();
   if (BXO_UNLIKELY(ln >  BXO_SIZE_MAX))
     {
       BXO_BACKTRACELOG("load_tuple: too wide tuple " << ln);
@@ -91,7 +92,7 @@ BxoTuple::load_tuple(BxoLoader&ld, const BxoJson&js)
                            << jcomp << " at ix=" << ix);
           throw std::runtime_error("BxoTuple::load_tuple invalid jcomp");
         }
-      auto pob = obj_from_idstr(jcomp.toString());
+      auto pob = ld.obj_from_idstr(jcomp.asString());
       if (!pob)
         {
           BXO_BACKTRACELOG("load_set: bad jcomp="
@@ -102,3 +103,15 @@ BxoTuple::load_tuple(BxoLoader&ld, const BxoJson&js)
     }
   return make_tuple(vec);
 } // end of BxoTuple::load_tuple
+
+void BxoLoader::load()
+{
+  if (!QSqlDatabase::drivers().contains("QSQLITE"))
+    {
+      BXO_BACKTRACELOG("load: missing QSQLITE driver");
+      throw std::runtime_error("BxoLoader::load missing QSQLITE");
+    }
+  _ld_sqldb = new QSqlDatabase();
+  _ld_sqldb->setDatabaseName(QString((_ld_dirname+"/"+basixmo_statebase+".sqlite").c_str()));
+#warning should compare mtime of .sql & .sqlite files
+} // end of BxoLoader::load

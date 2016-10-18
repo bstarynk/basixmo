@@ -45,7 +45,8 @@ _timestamp.c: Makefile | $(OBJECTS)
 	echo -n 'const char*const basixmo_shellsources[]={'; for sf in $(SHELLSOURCES) ; do \
 	  echo -n "\"$$sf\", " ; done ; \
 	echo '(const char*)0};') >> _timestamp.tmp
-	@(echo -n 'const char basixmo_statebase[]="'; echo -n $(BASIXMO_STATE); echo -n '";') >> _timestamp.tmp
+	@(echo -n 'const char basixmo_directory[]="'; echo -n $(realpath .); echo '";') >> _timestamp.tmp
+	@(echo -n 'const char basixmo_statebase[]="'; echo -n $(BASIXMO_STATE); echo '";') >> _timestamp.tmp
 	@echo >> _timestamp.tmp
 	@echo >> _timestamp.tmp
 	mv _timestamp.tmp _timestamp.c

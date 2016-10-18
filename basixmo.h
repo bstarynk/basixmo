@@ -61,6 +61,16 @@
 #define BXO_OPTIMIZEDFUN
 #endif
 
+// from generated _timestamp.c
+extern "C" const char basixmo_timestamp[];
+extern "C" const char basixmo_lastgitcommit[];
+extern "C" const char basixmo_lastgittag[];
+extern "C" const char*const basixmo_cxxsources[];
+extern "C" const char*const basixmo_csources[];
+extern "C" const char*const basixmo_shellsources[];
+extern "C" const char basixmo_directory[];
+extern "C" const char basixmo_statebase[];
+
 static inline pid_t
 bxo_gettid (void)
 {
@@ -375,6 +385,7 @@ class BxoLoader
 public:
   BxoLoader(const std::string dirname=".");
   ~BxoLoader();
+  void load(void);
   BxoObject* obj_from_idstr(const std::string&);
   BxoObject* obj_from_idstr(const char*cs)
   {
