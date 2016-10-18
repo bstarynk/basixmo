@@ -18,6 +18,12 @@
 
 #include "basixmo.h"
 
+void bxo_abort(void)
+{
+  fflush(NULL);
+  abort();
+} // end of bxo_abort
+
 char *
 bxo_strftime_centi (char *buf, size_t len, const char *fmt, double ti)
 {

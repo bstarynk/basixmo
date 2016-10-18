@@ -124,7 +124,28 @@ extern "C" void bxo_backtracestr_at (const char*fil, int lin, const std::string&
 #define BXO_BACKTRACELOG_AT_BIS(Fil,Lin,Log) \
   BXO_BACKTRACELOG_AT(Fil,Lin,Log)
 #define BXO_BACKTRACELOG(Log) \
-  BXO_BACKTRACELOG_AT(__FILE__,__LINE__,Log)
+  BXO_BACKTRACELOG_AT_BIS(__FILE__,__LINE__,Log)
+
+extern "C" void bxo_abort(void) __attribute__((noreturn));
+#ifdef NDEBUG
+#define BXO_ASSERT_AT(Fil,Lin,Prop,Log) do {    \
+ if (BXO_UNLIKELY(!(Prop))) {                   \
+   BXO_BACKTRACELOG_AT(Fil,Lin,                 \
+           "**BXO_ASSERT FAILED** " #Prop ":"	\
+           << Log);                             \
+   bxo_abort();                                 \
+ }                                              \
+} while(0)
+#else           
+#define BXO_ASSERT_AT(Fil,Lin,Prop,Log)  do {   \
+    if (false && !(Prop))                       \
+      BXO_BACKTRACELOG_AT(Fil,Lin,Log);         \
+} while(0)
+#endif  // NDEBUG
+#define BXO_ASSERT_AT_BIS(Fil,Lin,Prop,Log) \
+  BXO_ASSERT_AT(Fil,Lin,Prop,Log)
+#define BXO_ASSERT(Prop,Log) \
+  BXO_ASSERT_AT_BIS(__FILE__,__LINE__,Prop,Log)
 
 
 typedef uint32_t BxoHash_t;
