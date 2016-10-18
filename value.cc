@@ -268,6 +268,15 @@ BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
   auto siz = vec.size();
   if (BXO_UNLIKELY(siz <= 1))
     {
+      if (siz==0) return &the_empty_set;
+      auto& pob = vec[0];
+      if (!pob)
+        {
+          BXO_BACKTRACELOG("make_set: nil element in singleton");
+          throw std::runtime_error("BxoSet::make_set nil element");
+        }
+      auto h = combine_hash(init_hash, *pob);
+      return new BxoSet(h,1,&pob);
     }
   else if (BXO_UNLIKELY(siz > BXO_SIZE_MAX))
     {
@@ -284,8 +293,23 @@ BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
         }
       copy[ix] = vec[ix];
     }
-  if (siz>1)
-    std::sort(copy.begin(), copy.end(), BxoLessObjSharedPtr {});
+  std::sort(copy.begin(), copy.end(), BxoLessObjSharedPtr {});
+  int nbdup = 0;
+  auto h = combine_hash(init_hash, *copy[0]);
+  for (unsigned ix=1; ix<(unsigned)siz; ix++)
+    if (copy[ix] == copy[ix-1])
+      nbdup++;
+    else
+      h = combine_hash(h, *copy[ix]);
+  if (BXO_LIKELY(nbdup==0))
+    return new BxoSet(h,siz,copy.data());
+  int cnt = 0;
+  std::vector<std::shared_ptr<BxoObj>> unicopy {siz-nbdup+1};
+  unicopy.push_back(copy[0]);
+  for (unsigned ix=1; ix<(unsigned)siz; ix++)
+    if (copy[ix] != copy[ix-1])
+      unicopy.push_back(copy[ix]);
+  return new BxoSet(h,siz-nbdup,unicopy.data());
 } // end BxoSet::make_set
 
 BxoVSet::BxoVSet(const BxoSet&bs)

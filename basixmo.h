@@ -270,15 +270,24 @@ public:
   BxoVSet(const BxoSet&);
   BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&);
   BxoVSet(const std::vector<std::shared_ptr<BxoObj>>&);
-  BxoVSet(const std::vector<const BxoObj*>);
-  BxoVSet(std::initializer_list<std::shared_ptr<BxoObj>>);
-  BxoVSet(std::initializer_list<BxoObj*>);
+  BxoVSet(const std::vector<BxoObj*>);
+  BxoVSet(std::initializer_list<std::shared_ptr<BxoObj>> il)
+    : BxoVSet(std::vector<std::shared_ptr<BxoObj>>(il)) {};
+  BxoVSet(std::initializer_list<BxoObj*>il)
+    : BxoVSet(std::vector<BxoObj*>(il)) {};
 };        // end BxoVSet
 
 class BxoVTuple: public BxoVal
 {
 public:
   ~BxoVTuple() = default;
+  BxoVTuple(const BxoTuple&);
+  BxoVTuple(const std::vector<std::shared_ptr<BxoObj>>&);
+  BxoVTuple(const std::vector<BxoObj*>);
+  BxoVTuple(std::initializer_list<std::shared_ptr<BxoObj>> il)
+    : BxoVTuple(std::vector<std::shared_ptr<BxoObj>>(il)) {};
+  BxoVTuple(std::initializer_list<BxoObj*>il)
+    : BxoVTuple(std::vector<BxoObj*>(il)) {};
 };        // end BxoVTuple
 
 class BxoDumper
@@ -306,7 +315,7 @@ protected:
   const BxoHash_t _hash;
   const unsigned _len;
   std::shared_ptr<BxoObj> *_seq;
-  BxoSequence(BxoHash_t h, unsigned len, std::shared_ptr<BxoObj> *seq)
+  BxoSequence(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObj> *seq)
     : _hash(h), _len(len), _seq(new std::shared_ptr<BxoObj>[len])
   {
     for (unsigned ix=0; ix<len; ix++)
@@ -354,7 +363,7 @@ class BxoSet : public BxoSequence
   static BxoSet the_empty_set;
   static BxoSet*make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs);
   static BxoSet*make_set(const std::vector<std::shared_ptr<BxoObj>>&vec);
-  BxoSet(BxoHash_t h, unsigned len, std::shared_ptr<BxoObj> *seq)
+  BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObj> * seq)
     : BxoSequence(h, len, seq) {};
 public:
   bool same_set(const BxoSet& r) const
@@ -399,7 +408,7 @@ class BxoString: public std::enable_shared_from_this<BxoString>
   BxoString(BxoHash_t h, const std::string str) : _hash(h), _str(str) {};
 public:
   static BxoHash_t hash_cstring(const char*s, int ln= -1);
-  BxoString(const BxoString&s) : _hash(s._hash), _str(s._str) {};
+  BxoString(const BxoString&s) : std::enable_shared_from_this<BxoString>(s), _hash(s._hash), _str(s._str) {};
   BxoString(const char*s, int l= -1)
     : BxoString(hash_cstring(s,l),
                 std::string(s?s:"",(l>=0)?l:(s?strlen(s):0))) {};
