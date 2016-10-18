@@ -192,7 +192,7 @@ struct BxoLessObjPtr
   inline bool operator() (const BxoObject*lp, const BxoObject*rp) const;
 };
 
-#define BXO_SIZE_MAX (INT32_MAX/2)
+#define BXO_SIZE_MAX (INT32_MAX/3)
 enum class BxoVKind : std::uint8_t
 {
   NoneK,
@@ -344,6 +344,7 @@ class BxoVObj: public BxoVal
 public:
   ~BxoVObj() = default;
   BxoVObj(BxoObject*ob) : BxoVal(TagObject {},ob) {};
+  BxoVObj(std::shared_ptr<BxoObject>pob): BxoVal(TagObject {},pob) {};
 };        // end BxoVObj
 
 
@@ -370,8 +371,10 @@ class BxoLoader
 {
   std::string _ld_dirname;
   QSqlDatabase* _ld_sqldb;
+  std::unordered_map<std::string,std::shared_ptr<BxoObject>> _ld_objmap;
 public:
-  ~BxoLoader() {};
+  BxoLoader(const std::string dirname=".");
+  ~BxoLoader();
   BxoObject* obj_from_idstr(const std::string&);
   BxoObject* obj_from_idstr(const char*cs)
   {
@@ -442,6 +445,7 @@ class BxoSet : public BxoSequence
   BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObject> * seq)
     : BxoSequence(h, len, seq) {};
 public:
+  static const BxoSet*load_set(BxoLoader&, const BxoJson&);
   bool same_set(const BxoSet& r) const
   {
     return same_sequence(r);
@@ -455,6 +459,8 @@ public:
     return less_equal_sequence(r);
   }
 };        // end of BxoSet
+
+
 
 class BxoTuple : public BxoSequence
 {
@@ -472,6 +478,7 @@ class BxoTuple : public BxoSequence
     return h?h:(((ln*491)&0xffff)+31);
   }
 public:
+  static const BxoTuple*load_tuple(BxoLoader&, const BxoJson&);
   bool same_tuple(const BxoTuple& r) const
   {
     return same_sequence(r);
@@ -485,6 +492,8 @@ public:
     return less_equal_sequence(r);
   }
 };        // end of BxoTuple
+
+
 
 class BxoString: public std::enable_shared_from_this<BxoString>
 {

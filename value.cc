@@ -201,17 +201,30 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
           if (jid.isString())
             {
               auto idstr = jid.asString();
-              BxoObject* pob = BxoObject::find_from_idstr(idstr);
-
+              BxoObject* pob = ld.obj_from_idstr(idstr);
+              if (pob)
+                return BxoVObj(pob);
             }
         }
       else if (js.isMember("set"))
         {
           const auto& jset = js["set"];
+          if (jset.isArray())
+            {
+              auto pset = BxoSet::load_set(ld,jset);
+              if (pset)
+                return BxoVSet(pset);
+            }
         }
       else if (js.isMember("tup"))
         {
           const auto& jtup = js["tup"];
+          if (jtup.isArray())
+            {
+              auto ptup = BxoTuple::load_tuple(ld,jtup);
+              if (ptup)
+                return BxoVTuple(ptup);
+            }
         }
     }
 #warning incomplete BxoVal::from_json

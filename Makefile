@@ -14,7 +14,8 @@ CXXOPTIMFLAGS= $(OPTIMFLAGS)
 COPTIMFLAGS= $(OPTIMFLAGS)
 CXXWARNFLAGS= -Wall -Wextra
 CXXPREPROFLAGS= -I /usr/local/include  $(shell $(PKGCONFIG) --cflags $(PACKAGES))  -I $(shell $(GCC) -print-file-name=include/)
-CXXFLAGS= -std=gnu++14 $(CXXOPTIMFLAGS) $(CXXWARNFLAGS) $(CXXPREPROFLAGS)
+## -fPIC is required by Qt5, -fPIE is not enough
+CXXFLAGS= -std=gnu++14 -fPIC $(CXXOPTIMFLAGS) $(CXXWARNFLAGS) $(CXXPREPROFLAGS)
 CFLAGS= -Wall $(COPTIMFLAGS)
 ASTYLEFLAGS= --style=gnu -s2  --convert-tabs
 INDENTFLAGS= --gnu-style --no-tabs --honour-newlines
