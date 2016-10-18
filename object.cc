@@ -188,8 +188,10 @@ BxoObj::set_of_predefined_objects ()
 
 BxoObj::~BxoObj()
 {
+  /// objects are destroyed after main, then the bucket might be empty
   auto& curbuck = _bucketarr_[hi_id_bucketnum(_hid)];
-  curbuck.erase(this);
+  if (!curbuck.empty() && curbuck.find(this) != curbuck.end())
+    curbuck.erase(this);
   _classob.reset();
   _attrh.clear();
   _compv.clear();
