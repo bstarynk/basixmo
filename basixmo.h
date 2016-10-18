@@ -150,9 +150,19 @@ struct BxoHashObjSharedPtr
   inline size_t operator() (const std::shared_ptr<BxoObj>& po) const;
 };
 
+struct BxoHashObjPtr
+{
+  inline size_t operator() (BxoObj* po) const;
+};
+
 struct BxoLessObjSharedPtr
 {
   inline bool operator() (const std::shared_ptr<BxoObj>&lp, const std::shared_ptr<BxoObj>&rp) const;
+};
+
+struct BxoLessObjPtr
+{
+  inline bool operator() (const BxoObj*lp, const BxoObj*rp) const;
 };
 
 #define BXO_SIZE_MAX (INT32_MAX/2)
@@ -236,8 +246,11 @@ public:
   };
   inline BxoHash_t hash() const;
   BxoJson to_json(BxoDumper&) const;
+  inline void scan_dump(BxoDumper&) const;
   static BxoVal from_json(BxoLoader&, const BxoJson&);
 };        // end class BxoVal
+
+
 
 class BxoVNone: public BxoVal
 {
@@ -294,13 +307,20 @@ public:
 
 class BxoDumper
 {
+  std::unordered_set<BxoObj*,BxoHashObjPtr> _dumpobset;
 public:
-  virtual ~BxoDumper() {};
-  virtual bool is_dumpable(BxoObj*);
-  inline bool is_dumpable(std::shared_ptr<BxoObj> obp)
+  ~BxoDumper() {};
+  bool is_dumpable(BxoObj*pob)
+  {
+    return pob && _dumpobset.find(pob) != _dumpobset.end();
+  };
+  bool is_dumpable(std::shared_ptr<BxoObj> obp)
   {
     return obp && is_dumpable(obp.get());
   }
+  bool scan_dumpable(BxoObj*); // return true if the object is
+  // dumpable, and add it to the
+  // dumpobset
 };        // end class BxoDumper
 
 class BxoLoader
@@ -356,6 +376,7 @@ public:
   {
     return _len;
   };
+  inline void sequence_scan_dump(BxoDumper&) const;
 };        // end class BxoSequence
 
 
@@ -660,12 +681,26 @@ BxoHashObjSharedPtr::operator() (const std::shared_ptr<BxoObj>& po) const
   else return po->hash();
 };
 
+size_t
+BxoHashObjPtr::operator() (BxoObj* po) const
+{
+  if (!po) return 0;
+  else return po->hash();
+};
+
 bool BxoLessObjSharedPtr::operator() (const std::shared_ptr<BxoObj>&lp, const std::shared_ptr<BxoObj>&rp) const
 {
   if (!lp)
     {
       return !rp;
     };
+  if (!rp) return false;
+  return lp->less(*rp);
+}
+
+bool BxoLessObjPtr::operator() (const BxoObj*lp, const BxoObj*rp) const
+{
+  if (!lp) return !rp;
   if (!rp) return false;
   return lp->less(*rp);
 }
