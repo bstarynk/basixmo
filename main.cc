@@ -132,6 +132,7 @@ int
 main (int argc_main, char **argv_main)
 {
   clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
+  BxoObj::initialize_predefined_objects();
   printf("sizeof BxoVal : %zd (align %zd)\n",
          sizeof(BxoVal), alignof(BxoVal));
   printf("sizeof BxoObj : %zd (align %zd)\n",

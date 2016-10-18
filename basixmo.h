@@ -131,12 +131,12 @@ extern "C" void bxo_abort(void) __attribute__((noreturn));
 #define BXO_ASSERT_AT(Fil,Lin,Prop,Log) do {    \
  if (BXO_UNLIKELY(!(Prop))) {                   \
    BXO_BACKTRACELOG_AT(Fil,Lin,                 \
-           "**BXO_ASSERT FAILED** " #Prop ":"	\
+           "**BXO_ASSERT FAILED** " #Prop ":" \
            << Log);                             \
    bxo_abort();                                 \
  }                                              \
 } while(0)
-#else           
+#else
 #define BXO_ASSERT_AT(Fil,Lin,Prop,Log)  do {   \
     if (false && !(Prop))                       \
       BXO_BACKTRACELOG_AT(Fil,Lin,Log);         \
@@ -615,6 +615,7 @@ class BxoObj: public std::enable_shared_from_this<BxoObj>
 {
   friend class BxoVal;
   friend class BxoPayload;
+  friend class std::shared_ptr<BxoObj>;
   const BxoHash_t _hash;
   bool _gcmark;
   const Bxo_hid_t _hid;
@@ -622,7 +623,14 @@ class BxoObj: public std::enable_shared_from_this<BxoObj>
   std::unordered_map<const std::shared_ptr<BxoObj>,BxoVal,BxoHashObjSharedPtr> _attrh;
   std::vector<BxoVal> _compv;
   std::unique_ptr<BxoPayload> _payl;
+  struct PredefTag {};
 public:
+  BxoObj(PredefTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
+    : std::enable_shared_from_this<BxoObj>(),
+      _hash(hash), _hid(hid), _loid(loid),
+      _attrh {}, _compv {}, _payl {nullptr}
+  {};
+  static void initialize_predefined_objects (void);
   BxoHash_t hash()const
   {
     return _hash;
@@ -673,6 +681,17 @@ public:
   static inline BxoHash_t hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
 };        // end class BxoObj
 
+#define BXO_VARPREDEF(Nam) bxopredef_##Nam
+#define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \
+  extern "C" std::shared_ptr<BxoObj> BXO_VARPREDEF(Name);
+#include "_bxo_predef.h"
+
+enum Bxo_PredefHash_en
+{
+#define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \
+  bxopredh_##Name = Hash,
+#include "_bxo_predef.h"
+};
 
 class BxoPayload
 {

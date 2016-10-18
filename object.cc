@@ -127,3 +127,29 @@ bool BxoObj::cstr_to_hid_loid(const char*buf, Bxo_hid_t* phid, Bxo_loid_t* ploid
   return true;
 }
 
+
+
+#define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \
+std::shared_ptr<BxoObj> BXO_VARPREDEF(Name);
+#include "_bxo_predef.h"
+
+void
+BxoObj::initialize_predefined_objects(void)
+{
+  static bool inited;
+  if (inited)
+    {
+      BXO_BACKTRACELOG("initialize_predefined_objects runnin more than once");
+      bxo_abort();
+    }
+  inited = true;
+#define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash)  \
+  BXO_VARPREDEF(Name) =         \
+    std::make_shared<BxoObj>(PredefTag{},   \
+           Hash,Hid,Loid);        \
+  BXO_ASSERT(hash_from_hid_loid(Hid,Loid) == Hash,  \
+       "bad predefined " #Name);
+#include "_bxo_predef.h"
+  printf("created %d predefined objects\n", BXO_NB_PREDEFINED);
+  fflush(NULL);
+} // end BxoObj::initialize_predefined_objects
