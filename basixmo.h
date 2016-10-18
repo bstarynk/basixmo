@@ -350,11 +350,14 @@ public:
   // dumpobset
 };        // end class BxoDumper
 
+class QSqlDatabase;
 class BxoLoader
 {
+  std::string _ld_dirname;
+  QSqlDatabase* _ld_sqldb;
 public:
-  virtual ~BxoLoader() {};
-  virtual BxoObj* obj_from_idstr(const std::string&);
+  ~BxoLoader() {};
+  BxoObj* obj_from_idstr(const std::string&);
   BxoObj* obj_from_idstr(const char*cs)
   {
     return obj_from_idstr(std::string(cs));
@@ -694,13 +697,15 @@ public:
   {
     return cstr_to_hid_loid(str.c_str(), phid, ploid);
   }
-  static unsigned hi_id_bucketnum(Bxo_hid_t hid)
+  static unsigned hi_id_bucketnum(Bxo_hid_t hid, bool unchecked=false)
   {
     if (hid == 0)
       return 0;
     unsigned bn = hid >> 16;
     if (bn > 0 && bn < BXO_HID_BUCKETMAX)
       return bn;
+    if (unchecked)
+      return 0;
     BXO_BACKTRACELOG("hi_id_bucketnum: bad hid=" << hid);
     throw std::runtime_error("hi_id_bucketnum: bad hid");
   }
@@ -713,6 +718,8 @@ public:
     return BxoJson(strid());
   };
   static inline BxoHash_t hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
+  static BxoObj* find_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
+  static BxoObj* find_from_idstr(const std::string&idstr);
 };        // end class BxoObj
 
 #define BXO_VARPREDEF(Nam) bxopredef_##Nam

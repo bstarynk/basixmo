@@ -198,6 +198,11 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
       if (js.isMember("oid"))
         {
           const auto& jid = js["oid"];
+          if (jid.isString())
+            {
+              auto idstr = jid.asString();
+              BxoObj* pob = BxoObj::find_from_idstr(idstr);
+            }
         }
       else if (js.isMember("set"))
         {

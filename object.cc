@@ -197,3 +197,28 @@ BxoObj::~BxoObj()
   _compv.clear();
   _payl.reset();
 } // end of BxoObj::~BxoObj
+
+BxoObj*
+BxoObj::find_from_hid_loid(Bxo_hid_t hid, Bxo_loid_t loid)
+{
+  unsigned bn = hi_id_bucketnum(hid, true);
+  if (!bn) return nullptr;
+  auto& curbuck = _bucketarr_[bn];
+  /// in principle we could make a pseudoobject of hid&loid and find it in curbuck
+  /// in practice, the curbuck is small enough to make that useless
+  for (BxoObj*pob : curbuck)
+    {
+      if (pob && pob->_hid == hid && pob->_loid == loid)
+        return pob;
+    }
+  return nullptr;
+} // end of BxoObj::find_from_hid_loid
+
+BxoObj*
+BxoObj::find_from_idstr(const std::string&idstr)
+{
+  Bxo_hid_t hid=0;
+  Bxo_loid_t loid=0;
+  if (!str_to_hid_loid(idstr, &hid, &loid)) return nullptr;
+  return find_from_hid_loid(hid, loid);
+} // end BxoObj::find_from_idstr
