@@ -201,7 +201,8 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
           if (jid.isString())
             {
               auto idstr = jid.asString();
-              BxoObj* pob = BxoObj::find_from_idstr(idstr);
+              BxoObject* pob = BxoObject::find_from_idstr(idstr);
+
             }
         }
       else if (js.isMember("set"))
@@ -234,14 +235,14 @@ BxoVString::BxoVString(const BxoString&bs)
 BxoSet
 BxoSet::the_empty_set {BxoSet::init_hash,0,nullptr};
 
-BxoSet*
-BxoSet::make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs)
+const BxoSet*
+BxoSet::make_set(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>&bs)
 {
   auto siz = bs.size();
   if (BXO_UNLIKELY(siz <= 1))
     {
       if (siz==0) return &the_empty_set;
-      std::shared_ptr<BxoObj>pob = *bs.begin();
+      std::shared_ptr<BxoObject>pob = *bs.begin();
       if (!pob)
         {
           BXO_BACKTRACELOG("make_set: nil element in singleton");
@@ -255,7 +256,7 @@ BxoSet::make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs)
       BXO_BACKTRACELOG("make_set: too big size " << siz);
       throw std::runtime_error("BxoSet::make_set too big size");
     }
-  std::vector<std::shared_ptr<BxoObj>> vec {siz};
+  std::vector<std::shared_ptr<BxoObject>> vec {siz};
   BxoHash_t h = init_hash;
   for (const auto&p : bs)
     {
@@ -272,12 +273,12 @@ BxoSet::make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs)
 } // end BxoSet::make_set
 
 
-BxoSet*
-BxoSet::make_set(const std::vector<BxoObj*>&vecptr)
+const BxoSet*
+BxoSet::make_set(const std::vector<BxoObject*>&vecptr)
 {
-  std::vector<std::shared_ptr<BxoObj>> vec {vecptr.size()};
+  std::vector<std::shared_ptr<BxoObject>> vec {vecptr.size()};
   int cnt = 0;
-  for (BxoObj* po: vecptr)
+  for (BxoObject* po: vecptr)
     {
       if (po) vec[cnt++] = po->shared_from_this();
     }
@@ -285,8 +286,8 @@ BxoSet::make_set(const std::vector<BxoObj*>&vecptr)
   return make_set(vec);
 }
 
-BxoSet*
-BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
+const BxoSet*
+BxoSet::make_set(const std::vector<std::shared_ptr<BxoObject>>&vec)
 {
   auto siz = vec.size();
   if (BXO_UNLIKELY(siz <= 1))
@@ -306,7 +307,7 @@ BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
       BXO_BACKTRACELOG("make_set: too big size " << siz);
       throw std::runtime_error("BxoSet::make_set too big size");
     }
-  std::vector<std::shared_ptr<BxoObj>> copy {siz+1};
+  std::vector<std::shared_ptr<BxoObject>> copy {siz+1};
   for (unsigned ix=0; ix<(unsigned)siz; ix++)
     {
       if (BXO_UNLIKELY(!vec[ix]))
@@ -326,11 +327,62 @@ BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
       h = combine_hash(h, *copy[ix]);
   if (BXO_LIKELY(nbdup==0))
     return new BxoSet(h,siz,copy.data());
-  int cnt = 0;
-  std::vector<std::shared_ptr<BxoObj>> unicopy {siz-nbdup+1};
+  std::vector<std::shared_ptr<BxoObject>> unicopy {siz-nbdup+1};
   unicopy.push_back(copy[0]);
   for (unsigned ix=1; ix<(unsigned)siz; ix++)
     if (copy[ix] != copy[ix-1])
       unicopy.push_back(copy[ix]);
   return new BxoSet(h,siz-nbdup,unicopy.data());
 } // end BxoSet::make_set
+
+BxoTuple
+BxoTuple::the_empty_tuple {BxoTuple::init_hash,0,nullptr};
+
+const BxoTuple*
+BxoTuple::make_tuple(const std::vector<BxoObject*>&vecptr)
+{
+  std::vector<std::shared_ptr<BxoObject>> vec {vecptr.size()};
+  int cnt = 0;
+  for (BxoObject* po: vecptr)
+    {
+      if (po) vec[cnt++] = po->shared_from_this();
+    }
+  vec.resize(cnt);
+  return make_tuple(vec);
+}
+
+const BxoTuple*
+BxoTuple::make_tuple(const std::vector<std::shared_ptr<BxoObject>>& vec)
+{
+  int nilcnt = 0;
+  auto siz = vec.size();
+  if (!siz) return &the_empty_tuple;
+  BxoHash_t h = init_hash;
+  for (auto po: vec)
+    {
+      if (BXO_UNLIKELY(!po))
+        {
+          nilcnt++;
+        }
+      else
+        h = combine_hash(h, *po);
+    };
+  h = adjust_hash(h,siz-nilcnt);
+  if (BXO_UNLIKELY(siz - nilcnt > BXO_SIZE_MAX))
+    {
+      BXO_BACKTRACELOG("make_tuple: too big size " << siz - nilcnt);
+      throw std::runtime_error("BxoTuple::make_tuple too big size");
+    }
+  if (BXO_LIKELY(nilcnt == 0))
+    return new BxoTuple(h,(unsigned)siz,vec.data());
+  if (BXO_UNLIKELY(nilcnt == (int)siz))
+    return &the_empty_tuple;
+  std::vector<std::shared_ptr<BxoObject>>copyvec;
+  copyvec.reserve(siz-nilcnt+1);
+  for (auto po: vec)
+    {
+      if (BXO_LIKELY(po))
+        copyvec.push_back(po);
+    };
+  return new BxoTuple(h,(unsigned)copyvec.size(), copyvec.data());
+} // end of BxoTuple::make_tuple

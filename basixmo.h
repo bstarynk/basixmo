@@ -160,7 +160,7 @@ typedef unsigned __int128 Bxo_uint128_t;
 typedef Json::Value BxoJson;
 class BxoVal;
 class BxoString;
-class BxoObj;
+class BxoObject;
 class BxoSet;
 class BxoTuple;
 class BxoDumper;
@@ -169,27 +169,27 @@ class BxoLoader;
 
 struct BxoHashObjSharedPtr
 {
-  inline size_t operator() (const std::shared_ptr<BxoObj>& po) const;
+  inline size_t operator() (const std::shared_ptr<BxoObject>& po) const;
 };
 
 struct BxoHashObjWeakPtr
 {
-  inline size_t operator() (const std::weak_ptr<BxoObj>& po) const;
+  inline size_t operator() (const std::weak_ptr<BxoObject>& po) const;
 };
 
 struct BxoHashObjPtr
 {
-  inline size_t operator() (BxoObj* po) const;
+  inline size_t operator() (BxoObject* po) const;
 };
 
 struct BxoLessObjSharedPtr
 {
-  inline bool operator() (const std::shared_ptr<BxoObj>&lp, const std::shared_ptr<BxoObj>&rp) const;
+  inline bool operator() (const std::shared_ptr<BxoObject>&lp, const std::shared_ptr<BxoObject>&rp) const;
 };
 
 struct BxoLessObjPtr
 {
-  inline bool operator() (const BxoObj*lp, const BxoObj*rp) const;
+  inline bool operator() (const BxoObject*lp, const BxoObject*rp) const;
 };
 
 #define BXO_SIZE_MAX (INT32_MAX/2)
@@ -215,11 +215,11 @@ class BxoVal
   friend class BxoVNone;
   friend class BxoVInt;
   friend class BxoVString;
-  friend class BxoVObject;
+  friend class BxoVObj;
   friend class BxoVSet;
   friend class BxoVTuple;
   /// this is the shared object
-  friend class BxoObj;
+  friend class BxoObject;
   /// the dumper
   friend class BxoDumper;
 public:
@@ -235,7 +235,7 @@ protected:
   {
     void* _ptr;
     intptr_t _int;
-    std::shared_ptr<BxoObj> _obj;
+    std::shared_ptr<BxoObject> _obj;
     std::shared_ptr<const BxoString> _str;
     std::shared_ptr<const BxoSet> _set;
     std::shared_ptr<const BxoTuple> _tup;
@@ -246,11 +246,12 @@ protected:
     : _kind(BxoVKind::IntK), _int(i) {};
   inline BxoVal(TagString, const std::string& s);
   inline BxoVal(TagString, const BxoString*);
-  inline BxoVal(TagObject, BxoObj*po);
-  inline BxoVal(BxoObj*po, TagObject);
-  inline BxoVal(TagObject, const std::shared_ptr<BxoObj> op);
-  inline BxoVal(const std::shared_ptr<BxoObj> op, TagObject);
+  inline BxoVal(TagObject, BxoObject*po);
+  inline BxoVal(BxoObject*po, TagObject);
+  inline BxoVal(TagObject, const std::shared_ptr<BxoObject> op);
+  inline BxoVal(const std::shared_ptr<BxoObject> op, TagObject);
   inline BxoVal(TagSet, const BxoSet*pset);
+  inline BxoVal(TagTuple, const BxoTuple*ptup);
   BxoVal() : BxoVal(TagNone {}, nullptr) {};
 public:
   inline BxoVal(const BxoVal&v);
@@ -308,13 +309,13 @@ class BxoVSet: public BxoVal
 public:
   ~BxoVSet() = default;
   inline BxoVSet(const BxoSet&bs);
-  inline BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&);
-  inline BxoVSet(const std::vector<std::shared_ptr<BxoObj>>&);
-  inline BxoVSet(const std::vector<BxoObj*>&);
-  BxoVSet(std::initializer_list<std::shared_ptr<BxoObj>> il)
-    : BxoVSet(std::vector<std::shared_ptr<BxoObj>>(il)) {};
-  BxoVSet(std::initializer_list<BxoObj*>il)
-    : BxoVSet(std::vector<BxoObj*>(il)) {};
+  inline BxoVSet(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>&);
+  inline BxoVSet(const std::vector<std::shared_ptr<BxoObject>>&);
+  inline BxoVSet(const std::vector<BxoObject*>&);
+  BxoVSet(std::initializer_list<std::shared_ptr<BxoObject>> il)
+    : BxoVSet(std::vector<std::shared_ptr<BxoObject>>(il)) {};
+  BxoVSet(std::initializer_list<BxoObject*>il)
+    : BxoVSet(std::vector<BxoObject*>(il)) {};
   template <typename... Args> BxoVSet(Args ... args)
     : BxoVSet({args...}) {};
 };        // end BxoVSet
@@ -323,29 +324,43 @@ class BxoVTuple: public BxoVal
 {
 public:
   ~BxoVTuple() = default;
-  BxoVTuple(const BxoTuple&);
-  BxoVTuple(const std::vector<std::shared_ptr<BxoObj>>&);
-  BxoVTuple(const std::vector<BxoObj*>);
-  BxoVTuple(std::initializer_list<std::shared_ptr<BxoObj>> il)
-    : BxoVTuple(std::vector<std::shared_ptr<BxoObj>>(il)) {};
-  BxoVTuple(std::initializer_list<BxoObj*>il)
-    : BxoVTuple(std::vector<BxoObj*>(il)) {};
+  inline BxoVTuple(const BxoTuple&);
+  BxoVTuple(const std::vector<std::shared_ptr<BxoObject>>&);
+  BxoVTuple(const std::vector<BxoObject*>);
+  BxoVTuple(std::initializer_list<std::shared_ptr<BxoObject>> il)
+    : BxoVTuple(std::vector<std::shared_ptr<BxoObject>>(il)) {};
+  BxoVTuple(std::initializer_list<BxoObject*>il)
+    : BxoVTuple(std::vector<BxoObject*>(il)) {};
+  template <typename... Args> BxoVTuple(Args ... args)
+    : BxoVTuple({args...}) {};
 };        // end BxoVTuple
+
+
+
+
+
+class BxoVObj: public BxoVal
+{
+public:
+  ~BxoVObj() = default;
+  BxoVObj(BxoObject*ob) : BxoVal(TagObject {},ob) {};
+};        // end BxoVObj
+
 
 class BxoDumper
 {
-  std::unordered_set<BxoObj*,BxoHashObjPtr> _dumpobset;
+  std::unordered_set<BxoObject*,BxoHashObjPtr> _dumpobset;
 public:
   ~BxoDumper() {};
-  bool is_dumpable(BxoObj*pob)
+  bool is_dumpable(BxoObject*pob)
   {
     return pob && _dumpobset.find(pob) != _dumpobset.end();
   };
-  bool is_dumpable(std::shared_ptr<BxoObj> obp)
+  bool is_dumpable(std::shared_ptr<BxoObject> obp)
   {
     return obp && is_dumpable(obp.get());
   }
-  bool scan_dumpable(BxoObj*); // return true if the object is
+  bool scan_dumpable(BxoObject*); // return true if the object is
   // dumpable, and add it to the
   // dumpobset
 };        // end class BxoDumper
@@ -357,8 +372,8 @@ class BxoLoader
   QSqlDatabase* _ld_sqldb;
 public:
   ~BxoLoader() {};
-  BxoObj* obj_from_idstr(const std::string&);
-  BxoObj* obj_from_idstr(const char*cs)
+  BxoObject* obj_from_idstr(const std::string&);
+  BxoObject* obj_from_idstr(const char*cs)
   {
     return obj_from_idstr(std::string(cs));
   };
@@ -373,9 +388,9 @@ class BxoSequence : public std::enable_shared_from_this<BxoSequence>
 protected:
   const BxoHash_t _hash;
   const unsigned _len;
-  std::shared_ptr<BxoObj> *_seq;
-  BxoSequence(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObj> *seq)
-    : _hash(h), _len(len), _seq(new std::shared_ptr<BxoObj>[len])
+  std::shared_ptr<BxoObject> *_seq;
+  BxoSequence(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObject> *seq)
+    : _hash(h), _len(len), _seq(new std::shared_ptr<BxoObject>[len])
   {
     for (unsigned ix=0; ix<len; ix++)
       _seq[ix] = seq[ix];
@@ -415,16 +430,16 @@ class BxoSet : public BxoSequence
   friend class BxoVal;
   friend class BxoVSet;
   static constexpr BxoHash_t init_hash = 99;
-  static inline BxoHash_t combine_hash(BxoHash_t h, const BxoObj&ob);
+  static inline BxoHash_t combine_hash(BxoHash_t h, const BxoObject&ob);
   static BxoHash_t adjust_hash(BxoHash_t h, unsigned ln)
   {
     return h?h:(((ln*449)&0xffff)+23);
   }
   static BxoSet the_empty_set;
-  static BxoSet*make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs);
-  static BxoSet*make_set(const std::vector<std::shared_ptr<BxoObj>>&vec);
-  static BxoSet*make_set(const std::vector<BxoObj*>&vec);
-  BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObj> * seq)
+  static const BxoSet*make_set(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>&bs);
+  static const BxoSet*make_set(const std::vector<std::shared_ptr<BxoObject>>&vec);
+  static const BxoSet*make_set(const std::vector<BxoObject*>&vec);
+  BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObject> * seq)
     : BxoSequence(h, len, seq) {};
 public:
   bool same_set(const BxoSet& r) const
@@ -445,6 +460,17 @@ class BxoTuple : public BxoSequence
 {
   friend class BxoVal;
   friend class BxoVTuple;
+  static BxoTuple the_empty_tuple;
+  static const BxoTuple*make_tuple(const std::vector<std::shared_ptr<BxoObject>>&vec);
+  static const BxoTuple*make_tuple(const std::vector<BxoObject*>&vec);
+  BxoTuple(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObject> * seq)
+    : BxoSequence(h, len, seq) {};
+  static constexpr BxoHash_t init_hash = 127;
+  static inline BxoHash_t combine_hash(BxoHash_t h, const BxoObject&ob);
+  static BxoHash_t adjust_hash(BxoHash_t h, unsigned ln)
+  {
+    return h?h:(((ln*491)&0xffff)+31);
+  }
 public:
   bool same_tuple(const BxoTuple& r) const
   {
@@ -518,19 +544,23 @@ BxoVal::BxoVal(TagString,const BxoString*bs)
   new(&_str) std::shared_ptr<const BxoString>(bs);
 }
 
-BxoVal::BxoVal(TagObject, BxoObj*po)
+BxoVal::BxoVal(TagObject, BxoObject*po)
   : _kind(po?BxoVKind::ObjectK:BxoVKind::NoneK), _obj(po) {};
 
-BxoVal::BxoVal(BxoObj*po, TagObject)
+BxoVal::BxoVal(BxoObject*po, TagObject)
   : _kind(BxoVKind::ObjectK), _obj(po) {};
 
-BxoVal:: BxoVal(TagObject, const std::shared_ptr<BxoObj> op)
+BxoVal:: BxoVal(TagObject, const std::shared_ptr<BxoObject> op)
   : _kind(op?BxoVKind::ObjectK:BxoVKind::NoneK), _obj(op) {};
 
-BxoVal:: BxoVal(const std::shared_ptr<BxoObj> op, TagObject)
+BxoVal:: BxoVal(const std::shared_ptr<BxoObject> op, TagObject)
   : _kind(BxoVKind::ObjectK), _obj(op) {};
 BxoVal:: BxoVal(TagSet, const BxoSet*pset)
   : _kind(pset?BxoVKind::SetK:BxoVKind::NoneK), _set(pset) {};
+
+
+BxoVal:: BxoVal(TagTuple, const BxoTuple*ptup)
+  : _kind(ptup?BxoVKind::TupleK:BxoVKind::NoneK), _tup(ptup) {};
 
 
 BxoVal::BxoVal(const BxoVal&v)
@@ -548,7 +578,7 @@ BxoVal::BxoVal(const BxoVal&v)
       new(&_str) std::shared_ptr<BxoString>(new BxoString(*v._str));
       break;
     case BxoVKind::ObjectK:
-      new(&_obj) std::shared_ptr<BxoObj>(v._obj);
+      new(&_obj) std::shared_ptr<BxoObject>(v._obj);
       break;
     case BxoVKind::SetK:
       new(&_set) std::shared_ptr<BxoSet>(new BxoSet(*v._set));
@@ -602,7 +632,7 @@ BxoVal::~BxoVal()
     }
     break;
     case BxoVKind::ObjectK:
-      _obj.~shared_ptr<BxoObj>();
+      _obj.~shared_ptr<BxoObject>();
       break;
     case BxoVKind::SetK:
       _set.~shared_ptr<const BxoSet>();
@@ -628,25 +658,25 @@ class BxoPayload;
 #define BXO_CSTRIDSIZ ((BXO_CSTRIDLEN|3)+1)
 #define BXO_CSTRIDSCANF "_%17[A-Za-z0-9]"
 #define BXO_HID_BUCKETMAX 36000
-class BxoObj: public std::enable_shared_from_this<BxoObj>
+class BxoObject: public std::enable_shared_from_this<BxoObject>
 {
   friend class BxoVal;
   friend class BxoPayload;
-  friend class std::shared_ptr<BxoObj>;
+  friend class std::shared_ptr<BxoObject>;
   const BxoHash_t _hash;
   bool _gcmark;
   BxoSpace _space;
   const Bxo_hid_t _hid;
   const Bxo_loid_t _loid;
-  std::shared_ptr<BxoObj> _classob;
-  std::unordered_map<const std::shared_ptr<BxoObj>,BxoVal,BxoHashObjSharedPtr> _attrh;
+  std::shared_ptr<BxoObject> _classob;
+  std::unordered_map<const std::shared_ptr<BxoObject>,BxoVal,BxoHashObjSharedPtr> _attrh;
   std::vector<BxoVal> _compv;
   std::unique_ptr<BxoPayload> _payl;
   time_t _mtime;
   struct PredefTag {};
-  static std::unordered_set<std::shared_ptr<BxoObj>,BxoHashObjSharedPtr> _predef_set_;
-  static std::unordered_set<BxoObj*,BxoHashObjPtr> _bucketarr_[BXO_HID_BUCKETMAX];
-  static inline void register_in_bucket(BxoObj*pob)
+  static std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> _predef_set_;
+  static std::unordered_set<BxoObject*,BxoHashObjPtr> _bucketarr_[BXO_HID_BUCKETMAX];
+  static inline void register_in_bucket(BxoObject*pob)
   {
     _bucketarr_[hi_id_bucketnum(pob->_hid)].insert(pob);
   }
@@ -658,8 +688,8 @@ public:
   void change_space(BxoSpace);
   /// since PredefTag is private this is only reachable from our
   /// member functions
-  BxoObj(PredefTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
-    : std::enable_shared_from_this<BxoObj>(),
+  BxoObject(PredefTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
+    : std::enable_shared_from_this<BxoObject>(),
       _hash(hash), _gcmark(false), _space(BxoSpace::PredefSp), _hid(hid), _loid(loid),
       _classob {nullptr},
              _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
@@ -672,19 +702,19 @@ public:
   {
     return _hash;
   };
-  ~BxoObj();
-  bool same(const BxoObj&r) const
+  ~BxoObject();
+  bool same(const BxoObject&r) const
   {
     return this == &r;
   };
-  bool less(const BxoObj&r) const
+  bool less(const BxoObject&r) const
   {
     if (this == &r) return false;
     if (_hid >= r._hid) return false;
     if (_hid < r._hid) return true;
     return _loid < r._loid;
   };
-  bool less_equal(const BxoObj&r) const
+  bool less_equal(const BxoObject&r) const
   {
     if (this == &r) return true;
     if (_hid >= r._hid) return false;
@@ -718,13 +748,13 @@ public:
     return BxoJson(strid());
   };
   static inline BxoHash_t hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
-  static BxoObj* find_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
-  static BxoObj* find_from_idstr(const std::string&idstr);
-};        // end class BxoObj
+  static BxoObject* find_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
+  static BxoObject* find_from_idstr(const std::string&idstr);
+};        // end class BxoObject
 
 #define BXO_VARPREDEF(Nam) bxopredef_##Nam
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \
-  extern "C" std::shared_ptr<BxoObj> BXO_VARPREDEF(Name);
+  extern "C" std::shared_ptr<BxoObject> BXO_VARPREDEF(Name);
 #include "_bxo_predef.h"
 
 enum Bxo_PredefHash_en
@@ -736,19 +766,19 @@ enum Bxo_PredefHash_en
 
 class BxoPayload
 {
-  friend class BxoObj;
+  friend class BxoObject;
   friend class BxoVal;
   friend class std::unique_ptr<BxoPayload>;
-  friend class std::shared_ptr<BxoObj>;
-  BxoObj*const _owner;
+  friend class std::shared_ptr<BxoObject>;
+  BxoObject*const _owner;
 protected:
-  BxoPayload(BxoObj& own) : _owner(&own) {};
+  BxoPayload(BxoObject& own) : _owner(&own) {};
 public:
   virtual ~BxoPayload() {};
   BxoPayload(BxoPayload&&) = delete;
   BxoPayload(const BxoPayload&) = delete;
-  virtual std::shared_ptr<BxoObj> kind() const =0;
-  BxoObj* owner () const
+  virtual std::shared_ptr<BxoObject> kind() const =0;
+  BxoObject* owner () const
   {
     return _owner;
   };
@@ -756,27 +786,27 @@ public:
 
 
 size_t
-BxoHashObjSharedPtr::operator() (const std::shared_ptr<BxoObj>& po) const
+BxoHashObjSharedPtr::operator() (const std::shared_ptr<BxoObject>& po) const
 {
   if (!po) return 0;
   else return po->hash();
 };
 
 size_t
-BxoHashObjWeakPtr::operator() (const std::weak_ptr<BxoObj>& po) const
+BxoHashObjWeakPtr::operator() (const std::weak_ptr<BxoObject>& po) const
 {
   if (po.expired()) return 0;
   else return po.lock()->hash();
 };
 
 size_t
-BxoHashObjPtr::operator() (BxoObj* po) const
+BxoHashObjPtr::operator() (BxoObject* po) const
 {
   if (!po) return 0;
   else return po->hash();
 };
 
-bool BxoLessObjSharedPtr::operator() (const std::shared_ptr<BxoObj>&lp, const std::shared_ptr<BxoObj>&rp) const
+bool BxoLessObjSharedPtr::operator() (const std::shared_ptr<BxoObject>&lp, const std::shared_ptr<BxoObject>&rp) const
 {
   if (!lp)
     {
@@ -786,7 +816,7 @@ bool BxoLessObjSharedPtr::operator() (const std::shared_ptr<BxoObj>&lp, const st
   return lp->less(*rp);
 }
 
-bool BxoLessObjPtr::operator() (const BxoObj*lp, const BxoObj*rp) const
+bool BxoLessObjPtr::operator() (const BxoObject*lp, const BxoObject*rp) const
 {
   if (!lp) return !rp;
   if (!rp) return false;
@@ -852,7 +882,7 @@ BxoHash_t BxoVal::hash() const
 }
 
 BxoHash_t
-BxoObj::hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid)
+BxoObject::hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid)
 {
   if (hid == 0 && loid == 0)
     return 0;
@@ -864,21 +894,29 @@ BxoObj::hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid)
 }
 
 BxoHash_t
-BxoSet::combine_hash(BxoHash_t h, const BxoObj&ob)
+BxoSet::combine_hash(BxoHash_t h, const BxoObject&ob)
 {
   return (h * 12011) ^ (ob.hash() * 439);
+}
+BxoHash_t
+BxoTuple::combine_hash(BxoHash_t h, const BxoObject&ob)
+{
+  return (h * 11213) ^ (ob.hash() * 367);
 }
 
 BxoVSet::BxoVSet(const BxoSet&bs)
   : BxoVal(TagSet {},&bs) {}
 
-BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&s)
+BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>&s)
   : BxoVal(TagSet {},BxoSet::make_set(s)) {}
 
-BxoVSet::BxoVSet(const std::vector<std::shared_ptr<BxoObj>>&vs)
+BxoVSet::BxoVSet(const std::vector<std::shared_ptr<BxoObject>>&vs)
   : BxoVal(TagSet {}, BxoSet::make_set(vs)) {}
 
-BxoVSet::BxoVSet(const std::vector<BxoObj*>&vo)
+BxoVSet::BxoVSet(const std::vector<BxoObject*>&vo)
   : BxoVal(TagSet {}, BxoSet::make_set(vo)) {}
+
+BxoVTuple::BxoVTuple(const BxoTuple& tup)
+  :  BxoVal(TagTuple {},&tup) {}
 
 #endif /*BASIXMO_HEADER*/

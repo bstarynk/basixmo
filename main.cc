@@ -132,21 +132,21 @@ int
 main (int argc_main, char **argv_main)
 {
   clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
-  BxoObj::initialize_predefined_objects();
+  BxoObject::initialize_predefined_objects();
   printf("sizeof BxoVal : %zd (align %zd)\n",
          sizeof(BxoVal), alignof(BxoVal));
-  printf("sizeof BxoObj : %zd (align %zd)\n",
-         sizeof(BxoObj), alignof(BxoObj));
+  printf("sizeof BxoObject : %zd (align %zd)\n",
+         sizeof(BxoObject), alignof(BxoObject));
   printf("sizeof BxoSequence : %zd (align %zd)\n",
          sizeof(BxoSequence), alignof(BxoSequence));
   printf("sizeof BxoString : %zd (align %zd)\n",
          sizeof(BxoString), alignof(BxoString));
-  printf("sizeof shared_ptr<BxoObj> : %zd (align %zd)\n",
-         sizeof(std::shared_ptr<BxoObj>), alignof(std::shared_ptr<BxoObj>));
+  printf("sizeof shared_ptr<BxoObject> : %zd (align %zd)\n",
+         sizeof(std::shared_ptr<BxoObject>), alignof(std::shared_ptr<BxoObject>));
   printf("sizeof unique_ptr<BxoSequence> : %zd (align %zd)\n",
          sizeof(std::unique_ptr<BxoSequence>), alignof(std::unique_ptr<BxoSequence>));
-  printf("sizeof weak_ptr<BxoObj> : %zd (align %zd)\n",
-         sizeof(std::weak_ptr<BxoObj>), alignof(std::weak_ptr<BxoObj>));
+  printf("sizeof weak_ptr<BxoObject> : %zd (align %zd)\n",
+         sizeof(std::weak_ptr<BxoObject>), alignof(std::weak_ptr<BxoObject>));
 } // end of main
 
 double

@@ -17,9 +17,9 @@
 **/
 #include "basixmo.h"
 
-std::unordered_set<std::shared_ptr<BxoObj>,BxoHashObjSharedPtr> BxoObj::_predef_set_;
+std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> BxoObject::_predef_set_;
 
-std::unordered_set<BxoObj*,BxoHashObjPtr> BxoObj::_bucketarr_[BXO_HID_BUCKETMAX];
+std::unordered_set<BxoObject*,BxoHashObjPtr> BxoObject::_bucketarr_[BXO_HID_BUCKETMAX];
 // we choose base 60, because with a 0-9 decimal digit then 13 extended
 // digits in base 60 we can express a 80-bit number.  Notice that
 // log(2**80/10)/log(60) is 12.98112
@@ -70,7 +70,7 @@ char14_to_num80_bxo (const char *buf)
   return num;
 }
 
-std::string BxoObj::str_from_hid_loid(Bxo_hid_t hid, Bxo_loid_t loid)
+std::string BxoObject::str_from_hid_loid(Bxo_hid_t hid, Bxo_loid_t loid)
 {
   if (hid==0 && loid==0) return "";
   if (!hid || !loid)
@@ -98,7 +98,7 @@ std::string BxoObj::str_from_hid_loid(Bxo_hid_t hid, Bxo_loid_t loid)
   return std::string {buf};
 }
 
-bool BxoObj::cstr_to_hid_loid(const char*buf, Bxo_hid_t* phid, Bxo_loid_t* ploid, const char**endp)
+bool BxoObject::cstr_to_hid_loid(const char*buf, Bxo_hid_t* phid, Bxo_loid_t* ploid, const char**endp)
 {
   if (!buf || buf[0] != '_' || !isdigit(buf[1]))
     return false;
@@ -133,11 +133,11 @@ bool BxoObj::cstr_to_hid_loid(const char*buf, Bxo_hid_t* phid, Bxo_loid_t* ploid
 
 
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \
-std::shared_ptr<BxoObj> BXO_VARPREDEF(Name);
+std::shared_ptr<BxoObject> BXO_VARPREDEF(Name);
 #include "_bxo_predef.h"
 
 void
-BxoObj::initialize_predefined_objects(void)
+BxoObject::initialize_predefined_objects(void)
 {
   static bool inited;
   if (inited)
@@ -149,7 +149,7 @@ BxoObj::initialize_predefined_objects(void)
 
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash)    \
   BXO_VARPREDEF(Name) =                                 \
-    std::make_shared<BxoObj>(PredefTag{},               \
+    std::make_shared<BxoObject>(PredefTag{},               \
            Hash,Hid,Loid);                              \
   BXO_ASSERT(hash_from_hid_loid(Hid,Loid) == Hash,      \
        "bad predefined " #Name);                        \
@@ -158,9 +158,9 @@ BxoObj::initialize_predefined_objects(void)
 #include "_bxo_predef.h"
   printf("created %d predefined objects\n", (int)_predef_set_.size());
   fflush(NULL);
-} // end BxoObj::initialize_predefined_objects
+} // end BxoObject::initialize_predefined_objects
 
-void BxoObj::change_space(BxoSpace newsp)
+void BxoObject::change_space(BxoSpace newsp)
 {
   BXO_ASSERT(newsp < BxoSpace::_Last, "bad newsp:" << (int)newsp);
   if (_space == newsp) return;
@@ -172,21 +172,21 @@ void BxoObj::change_space(BxoSpace newsp)
     {
       _predef_set_.insert(shared_from_this());
     }
-} // end BxoObj::change_space
+} // end BxoObject::change_space
 
 BxoVal
-BxoObj::set_of_predefined_objects ()
+BxoObject::set_of_predefined_objects ()
 {
-  std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr> pset;
+  std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr> pset;
   for (auto obp : _predef_set_)
     {
       BXO_ASSERT(obp, "nil predefined pointer");
       pset.insert(obp);
     }
   return BxoVSet(pset);
-} // end of BxoObj::set_of_predefined_objects
+} // end of BxoObject::set_of_predefined_objects
 
-BxoObj::~BxoObj()
+BxoObject::~BxoObject()
 {
   /// objects are destroyed after main, then the bucket might be empty
   auto& curbuck = _bucketarr_[hi_id_bucketnum(_hid)];
@@ -196,29 +196,29 @@ BxoObj::~BxoObj()
   _attrh.clear();
   _compv.clear();
   _payl.reset();
-} // end of BxoObj::~BxoObj
+} // end of BxoObject::~BxoObject
 
-BxoObj*
-BxoObj::find_from_hid_loid(Bxo_hid_t hid, Bxo_loid_t loid)
+BxoObject*
+BxoObject::find_from_hid_loid(Bxo_hid_t hid, Bxo_loid_t loid)
 {
   unsigned bn = hi_id_bucketnum(hid, true);
   if (!bn) return nullptr;
   auto& curbuck = _bucketarr_[bn];
   /// in principle we could make a pseudoobject of hid&loid and find it in curbuck
   /// in practice, the curbuck is small enough to make that useless
-  for (BxoObj*pob : curbuck)
+  for (BxoObject*pob : curbuck)
     {
       if (pob && pob->_hid == hid && pob->_loid == loid)
         return pob;
     }
   return nullptr;
-} // end of BxoObj::find_from_hid_loid
+} // end of BxoObject::find_from_hid_loid
 
-BxoObj*
-BxoObj::find_from_idstr(const std::string&idstr)
+BxoObject*
+BxoObject::find_from_idstr(const std::string&idstr)
 {
   Bxo_hid_t hid=0;
   Bxo_loid_t loid=0;
   if (!str_to_hid_loid(idstr, &hid, &loid)) return nullptr;
   return find_from_hid_loid(hid, loid);
-} // end BxoObj::find_from_idstr
+} // end BxoObject::find_from_idstr
