@@ -131,7 +131,8 @@ extern "C" void bxo_abort(void) __attribute__((noreturn));
 #define BXO_ASSERT_AT(Fil,Lin,Prop,Log) do {    \
  if (BXO_UNLIKELY(!(Prop))) {                   \
    BXO_BACKTRACELOG_AT(Fil,Lin,                 \
-           "**BXO_ASSERT FAILED** " #Prop ":" \
+           "**BXO_ASSERT FAILED** " #Prop ":"   \
+           " @ " __FUNCTION__                   \
            << Log);                             \
    bxo_abort();                                 \
  }                                              \
@@ -169,6 +170,11 @@ class BxoLoader;
 struct BxoHashObjSharedPtr
 {
   inline size_t operator() (const std::shared_ptr<BxoObj>& po) const;
+};
+
+struct BxoHashObjWeakPtr
+{
+  inline size_t operator() (const std::weak_ptr<BxoObj>& po) const;
 };
 
 struct BxoHashObjPtr
@@ -605,6 +611,14 @@ BxoVal::~BxoVal()
   _ptr = nullptr;
 }
 
+enum class BxoSpace: std::uint8_t
+{
+  TransientSp,
+  PredefSp,
+  GlobalSp,
+  UserSp,
+  _Last
+};
 
 class BxoPayload;
 #define BXO_CSTRIDLEN 18        // used length
@@ -618,24 +632,44 @@ class BxoObj: public std::enable_shared_from_this<BxoObj>
   friend class std::shared_ptr<BxoObj>;
   const BxoHash_t _hash;
   bool _gcmark;
+  BxoSpace _space;
   const Bxo_hid_t _hid;
   const Bxo_loid_t _loid;
+  std::shared_ptr<BxoObj> _classob;
   std::unordered_map<const std::shared_ptr<BxoObj>,BxoVal,BxoHashObjSharedPtr> _attrh;
   std::vector<BxoVal> _compv;
   std::unique_ptr<BxoPayload> _payl;
+  time_t _mtime;
   struct PredefTag {};
+  static std::unordered_set<std::shared_ptr<BxoObj>,BxoHashObjSharedPtr> _predef_set_;
+  static std::unordered_set<BxoObj*,BxoHashObjPtr> _bucketarr_[BXO_HID_BUCKETMAX];
+  static inline void register_in_bucket(BxoObj*pob)
+  {
+    _bucketarr_[hi_id_bucketnum(pob->_hid)].insert(pob);
+  }
 public:
+  BxoSpace space() const
+  {
+    return _space;
+  };
+  void change_space(BxoSpace);
+  /// since PredefTag is private this is only reachable from our
+  /// member functions
   BxoObj(PredefTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
     : std::enable_shared_from_this<BxoObj>(),
-      _hash(hash), _hid(hid), _loid(loid),
-      _attrh {}, _compv {}, _payl {nullptr}
-  {};
+      _hash(hash), _gcmark(false), _space(BxoSpace::PredefSp), _hid(hid), _loid(loid),
+      _classob {nullptr},
+             _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
+  {
+    register_in_bucket(this);
+  };
   static void initialize_predefined_objects (void);
+  static BxoVal set_of_predefined_objects (void);
   BxoHash_t hash()const
   {
     return _hash;
   };
-  ~BxoObj() = default;
+  ~BxoObj();
   bool same(const BxoObj&r) const
   {
     return this == &r;
@@ -719,6 +753,13 @@ BxoHashObjSharedPtr::operator() (const std::shared_ptr<BxoObj>& po) const
 {
   if (!po) return 0;
   else return po->hash();
+};
+
+size_t
+BxoHashObjWeakPtr::operator() (const std::weak_ptr<BxoObj>& po) const
+{
+  if (po.expired()) return 0;
+  else return po.lock()->hash();
 };
 
 size_t

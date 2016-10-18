@@ -17,6 +17,9 @@
 **/
 #include "basixmo.h"
 
+std::unordered_set<std::shared_ptr<BxoObj>,BxoHashObjSharedPtr> BxoObj::_predef_set_;
+
+std::unordered_set<BxoObj*,BxoHashObjPtr> BxoObj::_bucketarr_[BXO_HID_BUCKETMAX];
 // we choose base 60, because with a 0-9 decimal digit then 13 extended
 // digits in base 60 we can express a 80-bit number.  Notice that
 // log(2**80/10)/log(60) is 12.98112
@@ -143,13 +146,52 @@ BxoObj::initialize_predefined_objects(void)
       bxo_abort();
     }
   inited = true;
-#define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash)  \
-  BXO_VARPREDEF(Name) =         \
-    std::make_shared<BxoObj>(PredefTag{},   \
-           Hash,Hid,Loid);        \
-  BXO_ASSERT(hash_from_hid_loid(Hid,Loid) == Hash,  \
-       "bad predefined " #Name);
+
+#define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash)    \
+  BXO_VARPREDEF(Name) =                                 \
+    std::make_shared<BxoObj>(PredefTag{},               \
+           Hash,Hid,Loid);                              \
+  BXO_ASSERT(hash_from_hid_loid(Hid,Loid) == Hash,      \
+       "bad predefined " #Name);                        \
+  _predef_set_.insert(BXO_VARPREDEF(Name));
+
 #include "_bxo_predef.h"
-  printf("created %d predefined objects\n", BXO_NB_PREDEFINED);
+  printf("created %d predefined objects\n", (int)_predef_set_.size());
   fflush(NULL);
 } // end BxoObj::initialize_predefined_objects
+
+void BxoObj::change_space(BxoSpace newsp)
+{
+  BXO_ASSERT(newsp < BxoSpace::_Last, "bad newsp:" << (int)newsp);
+  if (_space == newsp) return;
+  if (BXO_UNLIKELY(_space==BxoSpace::PredefSp))
+    {
+      _predef_set_.erase(shared_from_this());
+    };
+  if (newsp == BxoSpace::PredefSp)
+    {
+      _predef_set_.insert(shared_from_this());
+    }
+} // end BxoObj::change_space
+
+BxoVal
+BxoObj::set_of_predefined_objects ()
+{
+  std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr> pset;
+  for (auto obp : _predef_set_)
+    {
+      BXO_ASSERT(obp, "nil predefined pointer");
+      pset.insert(obp);
+    }
+  return BxoVSet(pset);
+} // end of BxoObj::set_of_predefined_objects
+
+BxoObj::~BxoObj()
+{
+  auto& curbuck = _bucketarr_[hi_id_bucketnum(_hid)];
+  curbuck.erase(this);
+  _classob.reset();
+  _attrh.clear();
+  _compv.clear();
+  _payl.reset();
+} // end of BxoObj::~BxoObj
