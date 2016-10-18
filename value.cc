@@ -197,16 +197,21 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
     {
       if (js.isMember("oid"))
         {
+          const auto& jid = js["oid"];
         }
       else if (js.isMember("set"))
         {
+          const auto& jset = js["set"];
         }
       else if (js.isMember("tup"))
         {
+          const auto& jtup = js["tup"];
         }
     }
 #warning incomplete BxoVal::from_json
     }
+  BXO_BACKTRACELOG("BxoVal::from_json: bad json " << js);
+  throw std::runtime_error("BxoVal::from_json: bad json");
 } // end of BxoVal::from_json
 
 
@@ -263,6 +268,19 @@ BxoSet::make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs)
 
 
 BxoSet*
+BxoSet::make_set(const std::vector<BxoObj*>&vecptr)
+{
+  std::vector<std::shared_ptr<BxoObj>> vec {vecptr.size()};
+  int cnt = 0;
+  for (BxoObj* po: vecptr)
+    {
+      if (po) vec[cnt++] = po->shared_from_this();
+    }
+  vec.resize(cnt);
+  return make_set(vec);
+}
+
+BxoSet*
 BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
 {
   auto siz = vec.size();
@@ -311,9 +329,3 @@ BxoSet::make_set(const std::vector<std::shared_ptr<BxoObj>>&vec)
       unicopy.push_back(copy[ix]);
   return new BxoSet(h,siz-nbdup,unicopy.data());
 } // end BxoSet::make_set
-
-BxoVSet::BxoVSet(const BxoSet&bs)
-  : BxoVal(TagSet {},&bs) {}
-
-BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&s)
-  : BxoVal(TagSet {},BxoSet::make_set(s)) {}

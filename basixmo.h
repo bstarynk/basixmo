@@ -267,14 +267,16 @@ class BxoVSet: public BxoVal
 {
 public:
   ~BxoVSet() = default;
-  BxoVSet(const BxoSet&);
-  BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&);
-  BxoVSet(const std::vector<std::shared_ptr<BxoObj>>&);
-  BxoVSet(const std::vector<BxoObj*>);
+  inline BxoVSet(const BxoSet&bs);
+  inline BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&);
+  inline BxoVSet(const std::vector<std::shared_ptr<BxoObj>>&);
+  inline BxoVSet(const std::vector<BxoObj*>&);
   BxoVSet(std::initializer_list<std::shared_ptr<BxoObj>> il)
     : BxoVSet(std::vector<std::shared_ptr<BxoObj>>(il)) {};
   BxoVSet(std::initializer_list<BxoObj*>il)
     : BxoVSet(std::vector<BxoObj*>(il)) {};
+  template <typename... Args> BxoVSet(Args ... args)
+    : BxoVSet({args...}) {};
 };        // end BxoVSet
 
 class BxoVTuple: public BxoVal
@@ -306,7 +308,14 @@ class BxoLoader
 public:
   virtual ~BxoLoader() {};
   virtual BxoObj* obj_from_idstr(const std::string&);
-  virtual BxoVal val_from_json(const BxoJson&);
+  BxoObj* obj_from_idstr(const char*cs)
+  {
+    return obj_from_idstr(std::string(cs));
+  };
+  BxoVal val_from_json(const BxoJson&js)
+  {
+    return BxoVal::from_json(*this,js);
+  };
 };        // end BxoLoader
 
 class BxoSequence : public std::enable_shared_from_this<BxoSequence>
@@ -363,6 +372,7 @@ class BxoSet : public BxoSequence
   static BxoSet the_empty_set;
   static BxoSet*make_set(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&bs);
   static BxoSet*make_set(const std::vector<std::shared_ptr<BxoObj>>&vec);
+  static BxoSet*make_set(const std::vector<BxoObj*>&vec);
   BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObj> * seq)
     : BxoSequence(h, len, seq) {};
 public:
@@ -735,5 +745,17 @@ BxoSet::combine_hash(BxoHash_t h, const BxoObj&ob)
 {
   return (h * 12011) ^ (ob.hash() * 439);
 }
+
+BxoVSet::BxoVSet(const BxoSet&bs)
+  : BxoVal(TagSet {},&bs) {}
+
+BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObj>,BxoLessObjSharedPtr>&s)
+  : BxoVal(TagSet {},BxoSet::make_set(s)) {}
+
+BxoVSet::BxoVSet(const std::vector<std::shared_ptr<BxoObj>>&vs)
+  : BxoVal(TagSet {}, BxoSet::make_set(vs)) {}
+
+BxoVSet::BxoVSet(const std::vector<BxoObj*>&vo)
+  : BxoVal(TagSet {}, BxoSet::make_set(vo)) {}
 
 #endif /*BASIXMO_HEADER*/
