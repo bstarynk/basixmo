@@ -204,6 +204,16 @@ BxoObject::~BxoObject()
       if (it != curbuck.end() && *it == this)
         curbuck.erase(it);
     }
+  if (!_namemap_.empty() && !_namedict_.empty())
+    {
+      auto it = _namemap_.find(this);
+      if (it != _namemap_.end())
+        {
+          const std::string& nstr = it->second;
+          _namedict_.erase(nstr);
+          _namemap_.erase(it);
+        }
+    }
   _classob.reset();
   _attrh.clear();
   _compv.clear();
@@ -311,3 +321,45 @@ BxoObject::valid_name(const std::string&str)
     }
   return true;
 }
+
+bool
+BxoObject::register_named(const std::string&namstr)
+{
+  if (!valid_name(namstr))
+    return false;
+  if (_namedict_.find(namstr) != _namedict_.end())
+    return false;
+  if (_namemap_.find(this) != _namemap_.end())
+    return false;
+  _namedict_[namstr] = shared_from_this();
+  _namemap_[this] = namstr;
+  return true;
+} // end BxoObject::register_named
+
+bool
+BxoObject::forget_named(void)
+{
+  auto it = _namemap_.find(this);
+  if (it == _namemap_.end())
+    return false;
+  std::string nam = it->second;
+  BXO_ASSERT(_namedict_.find(nam) != _namedict_.end(),
+             "corrupted _namedict_ for " << nam);
+  _namedict_.erase(nam);
+  _namemap_.erase (it);
+  return true;
+} // end BxoObject::forget_named
+
+bool
+BxoObject::forget_name(const std::string&nam)
+{
+  auto it = _namedict_.find(nam);
+  if (it == _namedict_.end())
+    return false;
+  BxoObject*obj = it->second.get();
+  BXO_ASSERT(obj != nullptr && _namemap_.find(obj) != _namemap_.end(),
+             "corrupted _namemap_ for " << nam);
+  _namemap_.erase (obj);
+  _namedict_.erase (it);
+  return true;
+} // end BxoObject::forget_name
