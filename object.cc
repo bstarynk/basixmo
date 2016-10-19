@@ -20,6 +20,9 @@
 std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> BxoObject::_predef_set_;
 
 std::unordered_set<BxoObject*,BxoHashObjPtr> BxoObject::_bucketarr_[BXO_HID_BUCKETMAX];
+std::map<std::string,std::shared_ptr<BxoObject>> BxoObject::_namedict_;
+std::unordered_map<const BxoObject*,std::string> BxoObject::_namemap_;
+
 // we choose base 60, because with a 0-9 decimal digit then 13 extended
 // digits in base 60 we can express a 80-bit number.  Notice that
 // log(2**80/10)/log(60) is 12.98112
@@ -135,6 +138,10 @@ bool BxoObject::cstr_to_hid_loid(const char*buf, Bxo_hid_t* phid, Bxo_loid_t* pl
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \
 std::shared_ptr<BxoObject> BXO_VARPREDEF(Name);
 #include "_bxo_predef.h"
+
+#define BXO_HAS_GLOBAL(Name,Idstr,Hid,Loid,Hash) \
+std::shared_ptr<BxoObject> BXO_VARGLOBAL(Name);
+#include "_bxo_global.h"
 
 void
 BxoObject::initialize_predefined_objects(void)
@@ -283,3 +290,24 @@ BxoObject::load_objref(BxoLoader&ld, const std::string& idstr)
   ld.register_objref(idstr,obj->shared_from_this());
   return obj->shared_from_this();
 } // end BxoObject::load_objref
+
+
+bool
+BxoObject::valid_name(const std::string&str)
+{
+  if (str.empty()) return false;
+  auto sz = str.size();
+  if (sz > BXO_MAX_NAME_LEN) return false;
+  if (!isalpha(str[0])) return false;
+  for (int ix=1; ix<(int)sz; ix++)
+    {
+      if (isalnum(str[ix])) continue;
+      else if (str[ix] == '_')
+        {
+          if (ix==(int)sz-1) return false;
+          if (str[ix-1] == '_') return false;
+        }
+      else return false;
+    }
+  return true;
+}

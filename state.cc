@@ -142,8 +142,8 @@ BxoLoader::load()
       throw std::runtime_error("BxoLoader::load open failure");
     }
   create_objects();
-  // set_globals ();
-  // name_objects ();
+  set_globals ();
+  name_objects ();
   // link_modules ();
   // fill_objects_contents ();
   // load_class ();
@@ -167,6 +167,24 @@ BxoLoader::create_objects(void)
     }
 } // end BxoLoader::create_objects
 
+
+void
+BxoLoader::set_globals(void)
+{
+#define BXO_HAS_GLOBAL(Nam,Idstr,Hid,Loid,Hash) do {  \
+    if (!BXO_VARGLOBAL(Nam))        \
+      BXO_VARGLOBAL(Nam) =        \
+  BxoObject::load_objref(*this,#Idstr);   \
+    BXO_ASSERT(BXO_VARGLOBAL(Nam)->hash() == Hash,  \
+         "bad hash for " << #Nam);    \
+} while(0)
+#include "_bxo_global.h"
+} // end of BxoLoader::set_globals
+
+void
+BxoLoader::name_objects(void)
+{
+} // end of BxoLoader::name_objects
 
 
 void

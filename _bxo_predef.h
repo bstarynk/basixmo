@@ -1,4 +1,4 @@
-// -*- C++ -*-
+// -*- C++ -*- file _bxo_predef.h
 
 
 #ifndef BXO_HAS_PREDEFINED

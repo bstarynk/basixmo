@@ -26,5 +26,7 @@ CREATE TABLE t_objects (ob_id VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE,
 			ob_paylkid VARCHAR(20) NOT NULL,
 			ob_paylcont TEXT NOT NULL,
 			ob_paylmod VARCHAR(20) NOT NULL);
+CREATE TABLE t_names (nam_str PRIMARY KEY ASC NOT NULL UNIQUE,
+                      nam_oid VARCHAR(20) NOT NULL UNIQUE);
 COMMIT;
 -- basixmo-dump-state end dump basixmo_state.sqlite

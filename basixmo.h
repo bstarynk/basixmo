@@ -433,6 +433,8 @@ class BxoLoader
   double _ld_startprocesstime;
   std::unordered_map<std::string,std::shared_ptr<BxoObject>> _ld_idtoobjmap;
   void create_objects(void);
+  void set_globals(void);
+  void name_objects(void);
 protected:
   void register_objref(const std::string&,std::shared_ptr<BxoObject> obp);
 public:
@@ -738,6 +740,8 @@ class BxoPayload;
 #define BXO_CSTRIDSIZ ((BXO_CSTRIDLEN|3)+1)
 #define BXO_CSTRIDSCANF "_%17[A-Za-z0-9]"
 #define BXO_HID_BUCKETMAX 36000
+#define BXO_MAX_NAME_LEN 1024
+
 class BxoObject: public std::enable_shared_from_this<BxoObject>
 {
   friend class BxoVal;
@@ -758,6 +762,8 @@ class BxoObject: public std::enable_shared_from_this<BxoObject>
   struct LoadedTag {};
   static std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> _predef_set_;
   static std::unordered_set<BxoObject*,BxoHashObjPtr> _bucketarr_[BXO_HID_BUCKETMAX];
+  static std::map<std::string,std::shared_ptr<BxoObject>> _namedict_;
+  static std::unordered_map<const BxoObject*,std::string> _namemap_;
   static inline void register_in_bucket(BxoObject*pob)
   {
     _bucketarr_[hi_id_bucketnum(pob->_hid)].insert(pob);
@@ -840,9 +846,43 @@ public:
     BXO_BACKTRACELOG("hi_id_bucketnum: bad hid=" << hid);
     throw std::runtime_error("hi_id_bucketnum: bad hid");
   }
+  static bool valid_name(const std::string&str);
+  bool register_named(const std::string&str);
+  bool forget_named(void);
+  static bool forget_name(const std::string&str);
+  static std::shared_ptr<BxoObject> find_named_objref(const std::string&str)
+  {
+    auto it = _namedict_.find(str);
+    if (it != _namedict_.end())
+      return it->second;
+    else return nullptr;
+  };
+  static BxoObject*find_named(const std::string&str)
+  {
+    return find_named_objref(str).get();
+  }
+  std::string name(void) const
+  {
+    auto it = _namemap_.find(this);
+    if (it != _namemap_.end())
+      return it->second;
+    return "";
+  }
   std::string strid(void) const
   {
     return str_from_hid_loid(_hid,_loid);
+  };
+  std::string pname(void) const
+  {
+    std::string n = name();
+    if (n.empty()) return strid();
+    else return n;
+  };
+  std::string short_pname(void) const
+  {
+    std::string n = name();
+    if (n.empty()) return strid().substr(1);
+    else return n;
   };
   BxoJson id_to_json(void) const
   {
@@ -875,6 +915,11 @@ enum Bxo_PredefHash_en
   bxopredh_##Name = Hash,
 #include "_bxo_predef.h"
 };
+
+#define BXO_VARGLOBAL(Nam) bxoglob_##Nam
+#define BXO_HAS_GLOBAL(Name,Idstr,Hid,Loid,Hash) \
+  extern "C" std::shared_ptr<BxoObject> BXO_VARGLOBAL(Name);
+#include "_bxo_global.h"
 
 class BxoPayload
 {
