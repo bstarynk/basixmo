@@ -64,7 +64,6 @@ sqlite3 $dbbase .dump >> $tempdump
 
 echo "-- basixmo-dump-state end dump $dbbase" >> $tempdump
 
-mv $tempdump "$sqlfile"
 
 
 if [ -e "$sqlfile" ]; then
@@ -73,9 +72,12 @@ if [ -e "$sqlfile" ]; then
 	echo $0: unchanged Basixmo Sqlite3 dump "$sqlfile"
 	exit 0
     fi
-    echo -n "backup Monimelt Sqlite3 dump:" 
+    echo -n "backup Basixmo Sqlite3 dump:" 
     mv -v --backup=existing "$sqlfile" "$sqlfile~"
 fi
+
+mv $tempdump "$sqlfile"
+
 ## we need that the .sql file has the same date as the .sqlite file
 touch -f "$dbfile" "$sqlfile"
 ls -l "$sqlfile"
