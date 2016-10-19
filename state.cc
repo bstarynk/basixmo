@@ -184,6 +184,30 @@ BxoLoader::set_globals(void)
 void
 BxoLoader::name_objects(void)
 {
+  QSqlQuery query;
+  enum { ResixId, ResixName, Resix_LAST };
+  if (!query.exec("SELECT nam_oid, nam_str FROM t_names"))
+    {
+      BXO_BACKTRACELOG("name_objects Sql query failure: " <<  _ld_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::name_objects query failure");
+    }
+  while (query.next())
+    {
+      std::string idstr = query.value(ResixId).toString().toStdString();
+      std::string namstr = query.value(ResixName).toString().toStdString();
+      auto pob = find_loadedobj(idstr);
+      if (!pob)
+        {
+          BXO_BACKTRACELOG("name_objects cant find " << idstr);
+          throw std::runtime_error("BxoLoader::name_objects missing object");
+        }
+      if (!pob->register_named(namstr))
+        {
+          BXO_BACKTRACELOG("name_objects cant register " << namstr
+                           << " for " << idstr);
+          throw std::runtime_error("BxoLoader::name_objects cant register named");
+        }
+    }
 } // end of BxoLoader::name_objects
 
 
