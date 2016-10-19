@@ -426,13 +426,26 @@ public:
 class QSqlDatabase;
 class BxoLoader
 {
+  friend class BxoObject;
   std::string _ld_dirname;
   QSqlDatabase* _ld_sqldb;
-  std::unordered_map<std::string,std::shared_ptr<BxoObject>> _ld_objmap;
+  double _ld_startelapsedtime;
+  double _ld_startprocesstime;
+  std::unordered_map<std::string,std::shared_ptr<BxoObject>> _ld_idtoobjmap;
+  void create_objects(void);
+protected:
+  void register_objref(const std::string&,std::shared_ptr<BxoObject> obp);
 public:
   BxoLoader(const std::string dirname=".");
   ~BxoLoader();
   void load(void);
+  std::shared_ptr<BxoObject> find_loadedobj(const std::string& str)
+  {
+    auto it = _ld_idtoobjmap.find(str);
+    if (it != _ld_idtoobjmap.end())
+      return it->second;
+    return nullptr;
+  }
   BxoObject* obj_from_idstr(const std::string&);
   BxoObject* obj_from_idstr(const char*cs)
   {
@@ -742,6 +755,7 @@ class BxoObject: public std::enable_shared_from_this<BxoObject>
   time_t _mtime;
   struct PredefTag {};
   struct PseudoTag {};
+  struct LoadedTag {};
   static std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> _predef_set_;
   static std::unordered_set<BxoObject*,BxoHashObjPtr> _bucketarr_[BXO_HID_BUCKETMAX];
   static inline void register_in_bucket(BxoObject*pob)
@@ -770,6 +784,14 @@ public:
       _classob {nullptr},
              _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
+  };
+  BxoObject(LoadedTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
+    : std::enable_shared_from_this<BxoObject>(),
+      _hash(hash), _gcmark(false), _space(BxoSpace::GlobalSp), _hid(hid), _loid(loid),
+      _classob {nullptr},
+             _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
+  {
+    register_in_bucket(this);
   };
   static void initialize_predefined_objects (void);
   static BxoVal set_of_predefined_objects (void);
@@ -830,6 +852,13 @@ public:
   static BxoObject* find_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
   static BxoObject* find_from_idstr(const std::string&idstr);
   static BxoObject* make_object(BxoSpace sp = BxoSpace::TransientSp);
+  static std::shared_ptr<BxoObject> make_objref(BxoSpace sp = BxoSpace::TransientSp)
+  {
+    BxoObject* pob = make_object(sp);
+    BXO_ASSERT (pob != nullptr, "make_object failed");
+    return pob->shared_from_this();
+  }
+  static std::shared_ptr<BxoObject> load_objref(BxoLoader&ld, const std::string& idstr);
 };        // end class BxoObject
 
 

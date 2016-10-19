@@ -18,10 +18,13 @@
 #include "basixmo.h"
 #include <QtSql>
 #include <QSqlDatabase>
+#include <QSqlQuery>
 #include <QFileInfo>
 
 BxoLoader::BxoLoader(const std::string dirnam)
-  : _ld_dirname(dirnam), _ld_sqldb(nullptr)
+  : _ld_dirname(dirnam), _ld_sqldb(nullptr),
+    _ld_startelapsedtime(bxo_elapsed_real_time()),
+    _ld_startprocesstime(bxo_process_cpu_time ())
 {
 } // end of BxoLoader::BxoLoader
 
@@ -29,8 +32,8 @@ BxoLoader::BxoLoader(const std::string dirnam)
 BxoObject*
 BxoLoader::obj_from_idstr(const std::string&s)
 {
-  auto p = _ld_objmap.find(s);
-  if (p != _ld_objmap.end())
+  auto p = _ld_idtoobjmap.find(s);
+  if (p != _ld_idtoobjmap.end())
     return p->second.get();
   return BxoObject::find_from_idstr(s);
 }
@@ -105,7 +108,11 @@ BxoTuple::load_tuple(BxoLoader&ld, const BxoJson&js)
   return make_tuple(vec);
 } // end of BxoTuple::load_tuple
 
-void BxoLoader::load()
+
+
+
+void
+BxoLoader::load()
 {
   if (!QSqlDatabase::drivers().contains("QSQLITE"))
     {
@@ -128,4 +135,47 @@ void BxoLoader::load()
       throw std::runtime_error("BxoLoader::load .sqlite youger");
     }
   _ld_sqldb->setDatabaseName(sqlitepath);
+  if (!_ld_sqldb->open())
+    {
+      BXO_BACKTRACELOG("load " << sqlitepath.toStdString()
+                       << " failed to open: " << _ld_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::load open failure");
+    }
+  create_objects();
+  // set_globals ();
+  // name_objects ();
+  // link_modules ();
+  // fill_objects_contents ();
+  // load_class ();
+  // load_payload ();
 } // end of BxoLoader::load
+
+void
+BxoLoader::create_objects(void)
+{
+  QSqlQuery query;
+  enum { ResixId, Resix_LAST };
+  if (!query.exec("SELECT ob_id FROM t_objects"))
+    {
+      BXO_BACKTRACELOG("create_objects Sql query failure: " <<  _ld_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::create_objects query failure");
+    }
+  while (query.next())
+    {
+      std::string idstr = query.value(ResixId).toString().toStdString();
+      (void) BxoObject::load_objref(*this,idstr);
+    }
+} // end BxoLoader::create_objects
+
+
+
+void
+BxoLoader::register_objref(const std::string&idstr,std::shared_ptr<BxoObject> obp)
+{
+  Bxo_hid_t hid=0;
+  Bxo_loid_t loid=0;
+  BXO_ASSERT(BxoObject::str_to_hid_loid(idstr,&hid,&loid),
+             "register_objref bad idstr:" << idstr);
+  BXO_ASSERT(obp, "register_objref empty obp");
+  _ld_idtoobjmap[idstr] = obp;
+} // end BxoLoader::register_objref

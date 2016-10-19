@@ -149,7 +149,7 @@ BxoObject::initialize_predefined_objects(void)
 
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash)    \
   BXO_VARPREDEF(Name) =                                 \
-    std::make_shared<BxoObject>(PredefTag{},               \
+    std::make_shared<BxoObject>(PredefTag{},            \
            Hash,Hid,Loid);                              \
   BXO_ASSERT(hash_from_hid_loid(Hid,Loid) == Hash,      \
        "bad predefined " #Name);                        \
@@ -264,3 +264,22 @@ BxoObject::make_object(BxoSpace sp)
     obres->change_space(sp);
   return obres;
 } // end BxoObject::make_object
+
+
+std::shared_ptr<BxoObject>
+BxoObject::load_objref(BxoLoader&ld, const std::string& idstr)
+{
+  std::shared_ptr<BxoObject> pob = ld.find_loadedobj(idstr);
+  if (pob) return pob;
+  Bxo_hid_t hid=0;
+  Bxo_loid_t loid=0;
+  if (!str_to_hid_loid(idstr,&hid,&loid))
+    {
+      BXO_BACKTRACELOG("load_objref bad idstr:" << idstr);
+      throw std::runtime_error("BxoObject::load_objref bad idstr");
+    }
+  auto h = hash_from_hid_loid(hid,loid);
+  BxoObject* obj = new BxoObject(LoadedTag {},h,hid,loid);
+  ld.register_objref(idstr,obj->shared_from_this());
+  return obj->shared_from_this();
+} // end BxoObject::load_objref
