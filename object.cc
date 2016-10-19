@@ -190,8 +190,13 @@ BxoObject::~BxoObject()
 {
   /// objects are destroyed after main, then the bucket might be empty
   auto& curbuck = _bucketarr_[hi_id_bucketnum(_hid)];
-  if (!curbuck.empty() && curbuck.find(this) != curbuck.end())
-    curbuck.erase(this);
+  if (!curbuck.empty())
+    {
+      auto it = curbuck.find(this);
+      // we could have temporarily some pseudo object of this id
+      if (it != curbuck.end() && *it == this)
+        curbuck.erase(it);
+    }
   _classob.reset();
   _attrh.clear();
   _compv.clear();
@@ -222,3 +227,40 @@ BxoObject::find_from_idstr(const std::string&idstr)
   if (!str_to_hid_loid(idstr, &hid, &loid)) return nullptr;
   return find_from_hid_loid(hid, loid);
 } // end BxoObject::find_from_idstr
+
+
+BxoObject*
+BxoObject::make_object(BxoSpace sp)
+{
+  Bxo_hid_t hid=0;
+  Bxo_loid_t loid=0;
+  unsigned bn=0;
+  BxoObject* obres = nullptr;
+  std::unordered_set<BxoObject*,BxoHashObjPtr>*pbuck = nullptr;
+  do
+    {
+      do
+        {
+          hid = BxoRandom::random_32u();
+        }
+      while (BXO_UNLIKELY((bn=hi_id_bucketnum(hid,true))==0));
+      pbuck = &_bucketarr_[bn];
+      do
+        {
+          loid = BxoRandom::random_64u();
+        }
+      while (BXO_UNLIKELY(loid == 0));
+      auto h = hash_from_hid_loid(hid,loid);
+      obres = new BxoObject(PseudoTag {},h,hid,loid);
+      if (BXO_UNLIKELY(pbuck->find(obres) != pbuck->end()))
+        {
+          delete obres;
+          obres = nullptr;
+        }
+    }
+  while (BXO_UNLIKELY(obres == nullptr));
+  pbuck->insert(obres);
+  if (sp != BxoSpace::TransientSp)
+    obres->change_space(sp);
+  return obres;
+} // end BxoObject::make_object

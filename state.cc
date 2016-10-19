@@ -118,14 +118,14 @@ void BxoLoader::load()
   if (!QFileInfo::exists(sqlitepath) || !QFileInfo::exists(sqlpath))
     {
       BXO_BACKTRACELOG("load: missing " << sqlitepath.toStdString()
-		       << " or " << sqlpath.toStdString());
+                       << " or " << sqlpath.toStdString());
       throw std::runtime_error("BxoLoader::load missing file");
     }
   if (QFileInfo(sqlitepath).lastModified() > QFileInfo(sqlpath).lastModified())
     {
       BXO_BACKTRACELOG("load: " << sqlitepath.toStdString()
-		       << " younger than " << sqlpath.toStdString());
-      throw std::runtime_error("BxoLoader::load .sqlite youger");      
+                       << " younger than " << sqlpath.toStdString());
+      throw std::runtime_error("BxoLoader::load .sqlite youger");
     }
   _ld_sqldb->setDatabaseName(sqlitepath);
 } // end of BxoLoader::load

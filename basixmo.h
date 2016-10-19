@@ -34,6 +34,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <random>
 
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
@@ -176,6 +177,52 @@ class BxoTuple;
 class BxoDumper;
 class BxoLoader;
 
+
+class BxoRandom
+{
+  static thread_local BxoRandom _rand_thr_;
+  unsigned long _rand_count;
+  std::mt19937 _rand_generator;
+  uint32_t generate_32u(void)
+  {
+    if (BXO_UNLIKELY(_rand_count++ % 4096 == 0))
+      {
+        std::random_device randev;
+        auto s1=randev(), s2=randev(), s3=randev(), s4=randev(),
+             s5=randev(), s6=randev(), s7=randev();
+        std::seed_seq seq {s1,s2,s3,s4,s5,s6,s7};
+        _rand_generator.seed(seq);
+      }
+    return _rand_generator();
+  };
+  uint32_t generate_nonzero_32u(void)
+  {
+    uint32_t r = 0;
+    do
+      {
+        r = generate_32u();
+      }
+    while (BXO_UNLIKELY(r==0));
+    return r;
+  };
+  uint64_t generate_64u(void)
+  {
+    return (static_cast<uint64_t>(generate_32u())<<32) | static_cast<uint64_t>(generate_32u());
+  };
+public:
+  static uint32_t random_32u(void)
+  {
+    return _rand_thr_.generate_32u();
+  };
+  static uint64_t random_64u(void)
+  {
+    return _rand_thr_.generate_64u();
+  };
+  static uint32_t random_nonzero_32u(void)
+  {
+    return _rand_thr_.generate_nonzero_32u();
+  };
+};        // end class BxoRandom
 
 struct BxoHashObjSharedPtr
 {
@@ -669,7 +716,7 @@ enum class BxoSpace: std::uint8_t
   TransientSp,
   PredefSp,
   GlobalSp,
-  UserSp,
+  /// UserSp,
   _Last
 };
 
@@ -694,6 +741,7 @@ class BxoObject: public std::enable_shared_from_this<BxoObject>
   std::unique_ptr<BxoPayload> _payl;
   time_t _mtime;
   struct PredefTag {};
+  struct PseudoTag {};
   static std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> _predef_set_;
   static std::unordered_set<BxoObject*,BxoHashObjPtr> _bucketarr_[BXO_HID_BUCKETMAX];
   static inline void register_in_bucket(BxoObject*pob)
@@ -716,6 +764,13 @@ public:
   {
     register_in_bucket(this);
   };
+  BxoObject(PseudoTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
+    : std::enable_shared_from_this<BxoObject>(),
+      _hash(hash), _gcmark(false), _space(BxoSpace::TransientSp), _hid(hid), _loid(loid),
+      _classob {nullptr},
+             _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
+  {
+  };
   static void initialize_predefined_objects (void);
   static BxoVal set_of_predefined_objects (void);
   BxoHash_t hash()const
@@ -723,6 +778,10 @@ public:
     return _hash;
   };
   ~BxoObject();
+  void touch()
+  {
+    _mtime = ::time(nullptr);
+  };
   bool same(const BxoObject&r) const
   {
     return this == &r;
@@ -770,7 +829,11 @@ public:
   static inline BxoHash_t hash_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
   static BxoObject* find_from_hid_loid (Bxo_hid_t hid, Bxo_loid_t loid);
   static BxoObject* find_from_idstr(const std::string&idstr);
+  static BxoObject* make_object(BxoSpace sp = BxoSpace::TransientSp);
 };        // end class BxoObject
+
+
+
 
 #define BXO_VARPREDEF(Nam) bxopredef_##Nam
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \

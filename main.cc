@@ -18,6 +18,7 @@
 
 #include "basixmo.h"
 
+thread_local BxoRandom BxoRandom::_rand_thr_;
 void bxo_abort(void)
 {
   fflush(NULL);
