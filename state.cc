@@ -18,6 +18,7 @@
 #include "basixmo.h"
 #include <QtSql>
 #include <QSqlDatabase>
+#include <QFileInfo>
 
 BxoLoader::BxoLoader(const std::string dirnam)
   : _ld_dirname(dirnam), _ld_sqldb(nullptr)
@@ -112,6 +113,19 @@ void BxoLoader::load()
       throw std::runtime_error("BxoLoader::load missing QSQLITE");
     }
   _ld_sqldb = new QSqlDatabase();
-  _ld_sqldb->setDatabaseName(QString((_ld_dirname+"/"+basixmo_statebase+".sqlite").c_str()));
-#warning should compare mtime of .sql & .sqlite files
+  QString sqlitepath((_ld_dirname+"/"+basixmo_statebase+".sqlite").c_str());
+  QString sqlpath((_ld_dirname+"/"+basixmo_statebase+".sql").c_str());
+  if (!QFileInfo::exists(sqlitepath) || !QFileInfo::exists(sqlpath))
+    {
+      BXO_BACKTRACELOG("load: missing " << sqlitepath.toStdString()
+		       << " or " << sqlpath.toStdString());
+      throw std::runtime_error("BxoLoader::load missing file");
+    }
+  if (QFileInfo(sqlitepath).lastModified() > QFileInfo(sqlpath).lastModified())
+    {
+      BXO_BACKTRACELOG("load: " << sqlitepath.toStdString()
+		       << " younger than " << sqlpath.toStdString());
+      throw std::runtime_error("BxoLoader::load .sqlite youger");      
+    }
+  _ld_sqldb->setDatabaseName(sqlitepath);
 } // end of BxoLoader::load

@@ -18,5 +18,13 @@
 
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
+CREATE TABLE t_params (par_name VARCHAR(35) PRIMARY KEY ASC NOT NULL UNIQUE,  par_value TEXT NOT NULL);
+CREATE TABLE t_objects (ob_id VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE,
+                        ob_mtime DATETIME,
+			ob_jsoncont TEXT NOT NULL,
+			ob_classid VARCHAR(20) NOT NULL,
+			ob_paylkid VARCHAR(20) NOT NULL,
+			ob_paylcont TEXT NOT NULL,
+			ob_paylmod VARCHAR(20) NOT NULL);
 COMMIT;
 -- basixmo-dump-state end dump basixmo_state.sqlite
