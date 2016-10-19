@@ -144,6 +144,7 @@ BxoLoader::load()
   create_objects();
   set_globals ();
   name_objects ();
+  name_predefined ();
   // link_modules ();
   // fill_objects_contents ();
   // load_class ();
@@ -212,6 +213,27 @@ BxoLoader::name_objects(void)
 
 
 void
+BxoLoader::name_predefined(void)
+{
+#define BXO_HAS_PREDEFINED(Nam,Idstr,Hid,Loid,Hash)  do {       \
+    auto pob = find_loadedobj(#Idstr);                          \
+    if (pob) {                                                  \
+      if (!pob->register_named(#Nam))                           \
+        fprintf(stderr,                                         \
+                "Failed to name predefined %s : %s\n",          \
+                #Idstr, #Nam);                                  \
+    }                                                           \
+    else                                                        \
+      fprintf(stderr,                                           \
+                 "no predefined object %s to name : %s\n",      \
+                 #Idstr, #Nam);                                 \
+  } while(0);
+
+#include "_bxo_predef.h"
+  fflush(nullptr);
+} // end of BxoLoader::name_predefined
+
+void
 BxoLoader::register_objref(const std::string&idstr,std::shared_ptr<BxoObject> obp)
 {
   Bxo_hid_t hid=0;
@@ -221,3 +243,59 @@ BxoLoader::register_objref(const std::string&idstr,std::shared_ptr<BxoObject> ob
   BXO_ASSERT(obp, "register_objref empty obp");
   _ld_idtoobjmap[idstr] = obp;
 } // end BxoLoader::register_objref
+
+
+bool
+BxoDumper::scan_dumpable(BxoObject*pob)
+{
+  BXO_ASSERT(_du_state == DuScan, "non-scan state #" << (int)_du_state);
+  if (!pob) return false;
+  if (is_dumpable(pob)) return true;
+  if (pob->space() == BxoSpace::TransientSp) return false;
+  _du_objset.insert(pob);
+  _du_scanque.push_back(pob->shared_from_this());
+  return true;
+} // end BxoDumper::scan_dumpable
+
+void
+BxoDumper::scan_all(void)
+{
+  BXO_ASSERT(_du_state == DuStop, "non stop state for scan");
+  _du_state = DuScan;
+  BxoVal proset = BxoObject::set_of_predefined_objects();
+  proset.scan_dump(*this);
+  while (!_du_scanque.empty())
+    {
+      auto scf = _du_scanque.front();
+      BXO_ASSERT(scf, "empty object to scan");
+      _du_scanque.pop_front();
+      scf->scan_content_dump(*this);
+    }
+} // end of BxoDumper::scan_all
+
+void
+BxoObject::scan_content_dump(BxoDumper&du) const
+{
+  if (_classob)
+    du.scan_dumpable(_classob.get());
+  for (auto &p : _attrh)
+    {
+      if (du.scan_dumpable(p.first.get()))
+        {
+          p.second.scan_dump(du);
+        }
+    }
+  for (auto& p: _compv)
+    {
+      p.scan_dump(du);
+    }
+  if (_payl)
+    {
+      BXO_ASSERT(_payl->owner() == this, "bad payload owner");
+      auto kob = _payl->kind();
+      if (kob && du.scan_dumpable(kob.get()))
+        {
+          _payl->scan_payload_content(du);
+        }
+    }
+} // end BxoObject::scan_content_dump

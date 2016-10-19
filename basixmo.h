@@ -32,6 +32,7 @@
 #include <initializer_list>
 #include <map>
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <unordered_set>
 #include <random>
@@ -331,7 +332,7 @@ public:
   };
   inline BxoHash_t hash() const;
   BxoJson to_json(BxoDumper&) const;
-  inline void scan_dump(BxoDumper&) const;
+  void scan_dump(BxoDumper&) const;
   static BxoVal from_json(BxoLoader&, const BxoJson&);
 };        // end class BxoVal
 
@@ -407,12 +408,21 @@ public:
 
 class BxoDumper
 {
-  std::unordered_set<BxoObject*,BxoHashObjPtr> _dumpobset;
+  enum { DuStop, DuScan, DuEmit } _du_state;
+  std::string _du_dirname;
+  std::unordered_set<BxoObject*,BxoHashObjPtr> _du_objset;
+  std::deque<std::shared_ptr<BxoObject>> _du_scanque;
 public:
-  ~BxoDumper() {};
+  BxoDumper(const std::string&dir = ".");
+  ~BxoDumper()
+  {
+    _du_state = DuStop;
+    _du_objset.clear();
+  };
+  void scan_all(void);
   bool is_dumpable(BxoObject*pob)
   {
-    return pob && _dumpobset.find(pob) != _dumpobset.end();
+    return pob && _du_objset.find(pob) != _du_objset.end();
   };
   bool is_dumpable(std::shared_ptr<BxoObject> obp)
   {
@@ -435,6 +445,7 @@ class BxoLoader
   void create_objects(void);
   void set_globals(void);
   void name_objects(void);
+  void name_predefined(void);
 protected:
   void register_objref(const std::string&,std::shared_ptr<BxoObject> obp);
 public:
@@ -899,6 +910,7 @@ public:
     return pob->shared_from_this();
   }
   static std::shared_ptr<BxoObject> load_objref(BxoLoader&ld, const std::string& idstr);
+  void scan_content_dump(BxoDumper&) const;
 };        // end class BxoObject
 
 
@@ -935,6 +947,7 @@ public:
   BxoPayload(BxoPayload&&) = delete;
   BxoPayload(const BxoPayload&) = delete;
   virtual std::shared_ptr<BxoObject> kind() const =0;
+  virtual void scan_payload_content(BxoDumper&) const =0;
   BxoObject* owner () const
   {
     return _owner;
@@ -988,6 +1001,13 @@ bool BxoSequence::less_than_sequence(const BxoSequence&r) const
     }
   return std::lexicographical_compare(_seq+0, _seq+_len, r._seq+0, r._seq+r._len, BxoLessObjSharedPtr {});
 }
+
+void
+BxoSequence::sequence_scan_dump(BxoDumper&du) const
+{
+  for (unsigned ix=0; ix<_len; ix++)
+    du.scan_dumpable(_seq[ix].get());
+} // end of BxoSequence::sequence_scan_dump
 
 bool BxoVal::equal (const BxoVal&r) const
 {
@@ -1075,5 +1095,7 @@ BxoVSet::BxoVSet(const std::vector<BxoObject*>&vo)
 
 BxoVTuple::BxoVTuple(const BxoTuple& tup)
   :  BxoVal(TagTuple {},&tup) {}
+
+
 
 #endif /*BASIXMO_HEADER*/

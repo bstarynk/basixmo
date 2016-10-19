@@ -399,3 +399,24 @@ BxoTuple::make_tuple(const std::vector<std::shared_ptr<BxoObject>>& vec)
     };
   return new BxoTuple(h,(unsigned)copyvec.size(), copyvec.data());
 } // end of BxoTuple::make_tuple
+
+void
+BxoVal::scan_dump(BxoDumper&du) const
+{
+  switch (_kind)
+    {
+    case BxoVKind::NoneK:
+    case BxoVKind::IntK:
+    case BxoVKind::StringK:
+      return;
+    case BxoVKind::ObjectK:
+      du.scan_dumpable(_obj.get());
+      break;
+    case BxoVKind::TupleK:
+      _tup->sequence_scan_dump(du);
+      break;
+    case BxoVKind::SetK:
+      _set->sequence_scan_dump(du);
+      break;
+    }
+} // end BxoVal::scan_dump
