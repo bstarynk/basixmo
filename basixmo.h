@@ -63,6 +63,10 @@
 #define BXO_OPTIMIZEDFUN
 #endif
 
+#define BXO_MODULEDIR "modules.dir"
+#define BXO_MODULEPREFIX "modu_"
+#define BXO_MODULESUFFIX ".so"
+
 // from generated _timestamp.c
 extern "C" const char basixmo_timestamp[];
 extern "C" const char basixmo_lastgitcommit[];
@@ -446,6 +450,10 @@ class BxoLoader
   void set_globals(void);
   void name_objects(void);
   void name_predefined(void);
+  void link_modules(void);
+  void fill_objects_contents(void);
+  void load_class(void);
+  void load_payload(void);
 protected:
   void register_objref(const std::string&,std::shared_ptr<BxoObject> obp);
 public:

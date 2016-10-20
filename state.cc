@@ -245,6 +245,58 @@ BxoLoader::register_objref(const std::string&idstr,std::shared_ptr<BxoObject> ob
 } // end BxoLoader::register_objref
 
 
+void
+BxoLoader::link_modules(void)
+{
+  typedef std::pair<std::shared_ptr<BxoObject>,void*> Pobjdlh_t;
+  std::vector<Pobjdlh_t> vecmod;
+  {
+    QSqlQuery query;
+    enum { ResixId, Resix_LAST };
+    if (!query.exec("SELECT mod_oid FROM t_modules"))
+      {
+        BXO_BACKTRACELOG("link_modules Sql query failure: " <<  _ld_sqldb->lastError().text().toStdString());
+        throw std::runtime_error("BxoLoader::link_modules query failure");
+      }
+    while (query.next())
+      {
+        std::string idstr = query.value(ResixId).toString().toStdString();
+        auto pob = find_loadedobj(idstr);
+        if (!pob)
+          {
+            BXO_BACKTRACELOG("link_modules cant find " << idstr);
+            throw std::runtime_error("BxoLoader::link_modules missing object");
+          }
+        std::string srcmodpath = std::string {basixmo_directory}+"/" BXO_MODULEPREFIX + idstr + ".cc";
+        if (!QFileInfo::exists(QString::fromStdString(srcmodpath)))
+          {
+            BXO_BACKTRACELOG("link_modules missing module source " << srcmodpath);
+            throw std::runtime_error("BxoLoader::link_module missing module source");
+          }
+        std::string binmodrelpath = std::string {BXO_MODULEDIR "/" BXO_MODULEPREFIX} + idstr + BXO_MODULESUFFIX;
+        // should run make -C basixmo_directory -q binmodrelpath
+#warning BxoLoader::link_module incomplete
+        vecmod.push_back(Pobjdlh_t {pob,nullptr});
+      }
+  }
+} // end of BxoLoader::link_modules
+
+
+void
+BxoLoader::fill_objects_contents(void)
+{
+} // end of BxoLoader::fill_objects_contents
+
+void
+BxoLoader::load_class(void)
+{
+} // end of BxoLoader::load_class
+
+void
+BxoLoader::load_payload(void)
+{
+} // end of BxoLoader::load_payload
+
 bool
 BxoDumper::scan_dumpable(BxoObject*pob)
 {

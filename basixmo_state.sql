@@ -28,5 +28,7 @@ CREATE TABLE t_objects (ob_id VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE,
 			ob_paylmod VARCHAR(20) NOT NULL);
 CREATE TABLE t_names (nam_str PRIMARY KEY ASC NOT NULL UNIQUE,
                       nam_oid VARCHAR(20) NOT NULL UNIQUE);
+CREATE UNIQUE INDEX x_namedid ON t_names (nam_oid);
+CREATE TABLE t_modules (mod_oid VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE,  mod_cflags TEXT NOT NULL, mod_ldflags TEXT NOT NULL);
 COMMIT;
 -- basixmo-dump-state end dump basixmo_state.sqlite
