@@ -26,7 +26,7 @@ BASIXMO_STATE=basixmo_state
 SHELLSOURCES= $(sort $(wildcard [a-z]*.sh))
 OBJECTS= $(patsubst %.cc,%.o,$(CXXSOURCES)) $(patsubst %.c,%.o,$(CSOURCES))
 GENERATED_HEADERS= $(wildcard _*.h)
-LIBES= -L/usr/local/lib  $(shell $(PKGCONFIG) --libs $(PACKAGES)) -pthread  $(shell $(GCC) -print-file-name=libbacktrace.a) 
+LIBES= -L/usr/local/lib  $(shell $(PKGCONFIG) --libs $(PACKAGES)) -pthread  $(shell $(GCC) -print-file-name=libbacktrace.a) -ldl
 .PHONY: all checkgithooks installgithooks clean dumpstate restorestate indent
 all: checkgithooks bxmo
 

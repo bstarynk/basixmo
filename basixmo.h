@@ -45,6 +45,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <syslog.h>
+#include <dlfcn.h>
 
 #include "json/json.h"
 
@@ -424,6 +425,7 @@ public:
     _du_objset.clear();
   };
   void scan_all(void);
+  void emit_all(void);
   bool is_dumpable(BxoObject*pob)
   {
     return pob && _du_objset.find(pob) != _du_objset.end();

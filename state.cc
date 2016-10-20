@@ -275,10 +275,34 @@ BxoLoader::link_modules(void)
           }
         std::string binmodrelpath = std::string {BXO_MODULEDIR "/" BXO_MODULEPREFIX} + idstr + BXO_MODULESUFFIX;
         // should run make -C basixmo_directory -q binmodrelpath
-#warning BxoLoader::link_module incomplete
+        {
+          QProcess makeproc;
+          QStringList makeargs;
+          makeargs << "-C" << basixmo_directory << "-q" << binmodrelpath.c_str();
+          makeproc.start("make",makeargs);
+          makeproc.waitForFinished(-1);
+          if (makeproc.exitStatus() != QProcess::NormalExit || makeproc.exitCode() != 0)
+            {
+              BXO_BACKTRACELOG("link_modules module binary  " << binmodrelpath << " in " << basixmo_directory << " is obsolete");
+              throw std::runtime_error("BxoLoader::link_module obsolete binary module");
+            }
+        }
         vecmod.push_back(Pobjdlh_t {pob,nullptr});
       }
   }
+  for (Pobjdlh_t po : vecmod)
+    {
+      std::string idstr = po.first->strid();
+      std::string binmodpath =
+        std::string {basixmo_directory} + "/"
+        + std::string {BXO_MODULEDIR "/" BXO_MODULEPREFIX} + idstr + BXO_MODULESUFFIX;
+      void* dlh = dlopen(binmodpath.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+      if (!dlh)
+        {
+          BXO_BACKTRACELOG("link_modules dlopen " << binmodpath << " failed:" << dlerror());
+          throw std::runtime_error("BxoLoader::link_module dlopen failure");
+        }
+    }
 } // end of BxoLoader::link_modules
 
 
@@ -313,6 +337,7 @@ void
 BxoDumper::scan_all(void)
 {
   BXO_ASSERT(_du_state == DuStop, "non stop state for scan");
+  _du_objset.clear();
   _du_state = DuScan;
   BxoVal proset = BxoObject::set_of_predefined_objects();
   proset.scan_dump(*this);
@@ -324,6 +349,16 @@ BxoDumper::scan_all(void)
       scf->scan_content_dump(*this);
     }
 } // end of BxoDumper::scan_all
+
+void
+BxoDumper::emit_all()
+{
+  _du_state = DuEmit;
+  for (BxoObject*pob : _du_objset)
+    {
+#warning BxoDumper::emit_all incomplete
+    }
+} // end BxoDumper::emit_all
 
 void
 BxoObject::scan_content_dump(BxoDumper&du) const
