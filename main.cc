@@ -17,6 +17,7 @@
 **/
 
 #include "basixmo.h"
+#include "QProcess"
 
 thread_local BxoRandom BxoRandom::_rand_thr_;
 void bxo_abort(void)
@@ -129,6 +130,23 @@ void bxo_backtracestr_at (const char*fil, int lin, const std::string&str)
 
 static struct timespec start_realtime_ts_bxo;
 
+static void
+check_updated_binary_bxo(void)
+{
+  // should run make -C basixmo_directory -q BXO_PROGBINARY
+  QProcess makeproc;
+  QStringList makeargs;
+  makeargs << "-C" << basixmo_directory << "-q" << BXO_PROGBINARY;
+  makeproc.start("make",makeargs);
+  makeproc.waitForFinished(-1);
+  if (makeproc.exitStatus() != QProcess::NormalExit || makeproc.exitCode() != 0)
+    {
+      BXO_BACKTRACELOG("check_updated_binary binary  " << BXO_PROGBINARY << " in " << basixmo_directory << " is obsolete");
+      exit(EXIT_FAILURE);
+    }
+} // end check_updated_binary_bxo
+
+
 int
 main (int argc_main, char **argv_main)
 {
@@ -148,6 +166,7 @@ main (int argc_main, char **argv_main)
          sizeof(std::unique_ptr<BxoSequence>), alignof(std::unique_ptr<BxoSequence>));
   printf("sizeof weak_ptr<BxoObject> : %zd (align %zd)\n",
          sizeof(std::weak_ptr<BxoObject>), alignof(std::weak_ptr<BxoObject>));
+  check_updated_binary_bxo();
 } // end of main
 
 double

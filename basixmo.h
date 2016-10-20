@@ -45,6 +45,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <syslog.h>
+#include <stdlib.h>
 #include <dlfcn.h>
 
 #include "json/json.h"
@@ -64,6 +65,7 @@
 #define BXO_OPTIMIZEDFUN
 #endif
 
+#define BXO_PROGBINARY "bxmo"
 #define BXO_MODULEDIR "modules.dir"
 #define BXO_MODULEPREFIX "modu_"
 #define BXO_MODULESUFFIX ".so"

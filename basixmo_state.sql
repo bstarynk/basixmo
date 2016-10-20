@@ -1,4 +1,4 @@
--- basixmo_state.sql dump 2016 Oct 14 from basixmo_state.sqlite dumped by ./basixmo-dump-state.sh .....
+-- basixmo_state.sql dump 2016 Oct 20 from basixmo_state.sqlite dumped by ./basixmo-dump-state.sh .....
 
  --   Copyright (C) 2016 Basile Starynkevitch.
  --  This sqlite3 dump file basixmo_state.sql is part of BASIXMO.
@@ -28,7 +28,7 @@ CREATE TABLE t_objects (ob_id VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE,
 			ob_paylmod VARCHAR(20) NOT NULL);
 CREATE TABLE t_names (nam_str PRIMARY KEY ASC NOT NULL UNIQUE,
                       nam_oid VARCHAR(20) NOT NULL UNIQUE);
-CREATE UNIQUE INDEX x_namedid ON t_names (nam_oid);
 CREATE TABLE t_modules (mod_oid VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE,  mod_cflags TEXT NOT NULL, mod_ldflags TEXT NOT NULL);
+CREATE UNIQUE INDEX x_namedid ON t_names (nam_oid);
 COMMIT;
 -- basixmo-dump-state end dump basixmo_state.sqlite
