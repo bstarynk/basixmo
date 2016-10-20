@@ -102,11 +102,9 @@ bxo_bt_err_callback (void *data BXO_UNUSED, const char *msg, int errnum)
 void bxo_backtracestr_at (const char*fil, int lin, const std::string&str)
 {
   double nowti = bxo_clock_time (CLOCK_REALTIME);
-  int len = 0;
   char thrname[24];
   char buf[256];
   char timbuf[64];
-  char *bigbuf = NULL;
   memset (buf, 0, sizeof (buf));
   memset (thrname, 0, sizeof (thrname));
   memset (timbuf, 0, sizeof (timbuf));

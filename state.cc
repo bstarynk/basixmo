@@ -145,10 +145,10 @@ BxoLoader::load()
   set_globals ();
   name_objects ();
   name_predefined ();
-  // link_modules ();
-  // fill_objects_contents ();
-  // load_class ();
-  // load_payload ();
+  link_modules ();
+  fill_objects_contents ();
+  // load_objects_class ();
+  // load_objects_payload ();
 } // end of BxoLoader::load
 
 void
@@ -302,6 +302,7 @@ BxoLoader::link_modules(void)
           BXO_BACKTRACELOG("link_modules dlopen " << binmodpath << " failed:" << dlerror());
           throw std::runtime_error("BxoLoader::link_module dlopen failure");
         }
+      po.second = dlh;
     }
 } // end of BxoLoader::link_modules
 
@@ -309,17 +310,46 @@ BxoLoader::link_modules(void)
 void
 BxoLoader::fill_objects_contents(void)
 {
+  QSqlQuery query;
+  enum { ResixId, ResixMtime, ResixJsoncont, Resix_LAST };
+  if (!query.exec("SELECT ob_id, ob_mtime, ob_jsoncont FROM t_objects"))
+    {
+      BXO_BACKTRACELOG("fill_objects_contents Sql query failure: " <<  _ld_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::fill_objects_contents query failure");
+    }
+  while (query.next())
+    {
+      std::string idstr = query.value(ResixId).toString().toStdString();
+      double mtimdb = query.value(ResixMtime).toDouble();
+      auto pob = find_loadedobj(idstr);
+      if (!pob)
+        {
+          BXO_BACKTRACELOG("fill_objects_contents cant find " << idstr);
+          throw std::runtime_error("BxoLoader::fill_objects_contents missing object");
+        }
+      std::string jsonstr = query.value(ResixId).toString().toStdString();
+      Json::Reader jrd(Json::Features::strictMode());
+      BxoJson jv;
+      if (!jrd.parse(jsonstr,jv,false))
+        {
+          BXO_BACKTRACELOG("fill_objects_contents parse failure for " << idstr
+                           << ": " << jrd.getFormattedErrorMessages());
+          throw std::runtime_error("BxoLoader::fill_objects_contents Json parse failure");
+        }
+      pob->touch_load((time_t)mtimdb,*this);
+      pob->load_content(jv,*this);
+    }
 } // end of BxoLoader::fill_objects_contents
 
 void
-BxoLoader::load_class(void)
+BxoLoader::load_objects_class(void)
 {
-} // end of BxoLoader::load_class
+} // end of BxoLoader::load_objects_class
 
 void
-BxoLoader::load_payload(void)
+BxoLoader::load_objects_payload(void)
 {
-} // end of BxoLoader::load_payload
+} // end of BxoLoader::load_objects_payload
 
 bool
 BxoDumper::scan_dumpable(BxoObject*pob)
@@ -355,10 +385,14 @@ BxoDumper::emit_all()
 {
   _du_state = DuEmit;
   for (BxoObject*pob : _du_objset)
-    {
-#warning BxoDumper::emit_all incomplete
-    }
+    emit_object_row(pob);
 } // end BxoDumper::emit_all
+
+void
+BxoDumper::emit_object_row(BxoObject*pob)
+{
+#warning should code BxoDumper::emit_object_row
+} // end of BxoDumper::emit_object_row
 
 void
 BxoObject::scan_content_dump(BxoDumper&du) const
@@ -379,10 +413,27 @@ BxoObject::scan_content_dump(BxoDumper&du) const
   if (_payl)
     {
       BXO_ASSERT(_payl->owner() == this, "bad payload owner");
-      auto kob = _payl->kind();
+      auto kob = _payl->kind_ob();
       if (kob && du.scan_dumpable(kob.get()))
         {
           _payl->scan_payload_content(du);
         }
     }
 } // end BxoObject::scan_content_dump
+
+BxoJson
+BxoObject::json_for_content(BxoDumper&du) const
+{
+#warning should code BxoObject::json_for_content
+} //end BxoObject::json_for_content
+
+
+void BxoObject::load_content(const BxoJson&jv, BxoLoader&ld)
+{
+#warning should code  BxoObject::load_content
+} // end BxoObject::load_content
+
+void BxoObject::touch_load(time_t mtim, BxoLoader&)
+{
+  _mtime = (time_t) mtim;
+} // end BxoObject::touch_load

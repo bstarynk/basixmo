@@ -428,6 +428,7 @@ public:
   };
   void scan_all(void);
   void emit_all(void);
+  void emit_object_row(BxoObject*pob);
   bool is_dumpable(BxoObject*pob)
   {
     return pob && _du_objset.find(pob) != _du_objset.end();
@@ -456,8 +457,8 @@ class BxoLoader
   void name_predefined(void);
   void link_modules(void);
   void fill_objects_contents(void);
-  void load_class(void);
-  void load_payload(void);
+  void load_objects_class(void);
+  void load_objects_payload(void);
 protected:
   void register_objref(const std::string&,std::shared_ptr<BxoObject> obp);
 public:
@@ -922,7 +923,10 @@ public:
     return pob->shared_from_this();
   }
   static std::shared_ptr<BxoObject> load_objref(BxoLoader&ld, const std::string& idstr);
+  void load_content(const BxoJson&, BxoLoader&);
+  void touch_load(time_t, BxoLoader&);
   void scan_content_dump(BxoDumper&) const;
+  BxoJson json_for_content(BxoDumper&) const;
 };        // end class BxoObject
 
 
@@ -958,8 +962,10 @@ public:
   virtual ~BxoPayload() {};
   BxoPayload(BxoPayload&&) = delete;
   BxoPayload(const BxoPayload&) = delete;
-  virtual std::shared_ptr<BxoObject> kind() const =0;
+  virtual std::shared_ptr<BxoObject> kind_ob() const =0;
+  virtual std::shared_ptr<BxoObject> module_ob() const =0;
   virtual void scan_payload_content(BxoDumper&) const =0;
+  virtual BxoJson emit_payload_content(BxoDumper&) const =0;
   BxoObject* owner () const
   {
     return _owner;
