@@ -424,13 +424,82 @@ BxoObject::scan_content_dump(BxoDumper&du) const
 BxoJson
 BxoObject::json_for_content(BxoDumper&du) const
 {
-#warning should code BxoObject::json_for_content
+  BxoJson job {Json::objectValue};
+  auto nm = name();
+  if (!nm.empty())
+    job["@name"] = nm;
+  {
+    std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr> atset;
+    BxoJson jattrs {Json::arrayValue};
+    for (const auto& p: _attrh)
+      {
+        auto atob = p.first;
+        if (!du.is_dumpable(atob)) continue;
+        atset.insert(atob);
+      }
+    for (const auto pob: atset)
+      {
+        const std::shared_ptr<BxoObject> cpob = pob;
+        auto pv = _attrh.find(cpob);
+        if (pv == _attrh.end()) continue;
+        const BxoVal& aval = pv->second;
+        BxoJson jpair {Json::objectValue};
+        jpair["at"] = pob->strid();
+        jpair["va"] = aval.to_json(du);
+        jattrs.append (jpair);
+      }
+    job["attrs"] = jattrs;
+  }
+  {
+    BxoJson jcomps {Json::arrayValue};
+    for (auto vcomp : _compv)
+      {
+        jcomps.append(vcomp.to_json(du));
+      }
+    job["comps"] = jcomps;
+  }
+  return job;
 } //end BxoObject::json_for_content
 
 
 void BxoObject::load_content(const BxoJson&jv, BxoLoader&ld)
 {
-#warning should code  BxoObject::load_content
+  if (jv.isMember("attrs"))
+    {
+      auto jattrs = jv["attrs"];
+      if (jattrs.isArray())
+        {
+          auto nbat = jattrs.size();
+          _attrh.reserve(5*nbat/4+1);
+          for (int ix=0; ix<(int)nbat; ix++)
+            {
+              const BxoJson& jpair = jattrs[ix];
+              if (!jpair.isObject()) continue;
+              const BxoJson& jat = jpair["at"];
+              if (!jat.isString()) continue;
+              auto pobat = ld.find_loadedobj(jat.asString());
+              if (!pobat) continue;
+              const BxoJson& jva = jpair["va"];
+              BxoVal aval = BxoVal::from_json(ld,jva);
+              _attrh.insert({pobat,aval});
+            }
+        }
+    }
+  if (jv.isMember("comps"))
+    {
+      auto jcomps = jv["comps"];
+      if (jcomps.isArray())
+        {
+          auto nbcomp = jcomps.size();
+          _compv.reserve(5*nbcomp/4+1);
+          for (int ix=0; ix<(int)nbcomp; ix++)
+            {
+              const BxoJson& jcomp = jcomps[ix];
+              BxoVal cval = BxoVal::from_json(ld,jcomp);
+              _compv.push_back(cval);
+            }
+        }
+    }
 } // end BxoObject::load_content
 
 void BxoObject::touch_load(time_t mtim, BxoLoader&)

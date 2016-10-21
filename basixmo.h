@@ -341,6 +341,7 @@ public:
   BxoJson to_json(BxoDumper&) const;
   void scan_dump(BxoDumper&) const;
   static BxoVal from_json(BxoLoader&, const BxoJson&);
+#warning we probably need an BxoVal& operator = (const BxoVal&)
 };        // end class BxoVal
 
 
