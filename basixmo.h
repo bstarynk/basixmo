@@ -439,6 +439,7 @@ class BxoDumper
   std::string _du_dirname;
   std::unordered_set<BxoObject*,BxoHashObjPtr> _du_objset;
   std::deque<std::shared_ptr<BxoObject>> _du_scanque;
+  std::deque<std::pair<std::function<void(BxoDumper&,BxoVal)>,BxoVal>> _du_todoafterscan;
 public:
   BxoDumper(const std::string&dir = ".");
   ~BxoDumper();
@@ -446,6 +447,11 @@ public:
   BxoDumper(BxoDumper&&) = delete;
   void scan_all(void);
   void emit_all(void);
+  void do_after_scan(std::function<void(BxoDumper&,BxoVal)> f, BxoVal v)
+  {
+    BXO_ASSERT(_du_state == DuScan, "non-scan state for do_after_scan");
+    _du_todoafterscan.push_back({f,v});
+  }
   // emit the object, and return its module if any
   std::shared_ptr<BxoObject> emit_object_row_module(BxoObject*pob);
   bool is_dumpable(BxoObject*pob)

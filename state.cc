@@ -401,6 +401,12 @@ BxoDumper::scan_all(void)
       _du_scanque.pop_front();
       scf->scan_content_dump(*this);
     }
+  while (!_du_todoafterscan.empty())
+    {
+      auto tdf = _du_todoafterscan.front();
+      _du_todoafterscan.pop_front();
+      tdf.first(*this,tdf.second);
+    }
 } // end of BxoDumper::scan_all
 
 void
