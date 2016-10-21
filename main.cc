@@ -17,7 +17,10 @@
 **/
 
 #include "basixmo.h"
-#include "QProcess"
+#include <QProcess>
+#include <QCoreApplication>
+#include <QApplication>
+#include <QCommandLineParser>
 
 thread_local BxoRandom BxoRandom::_rand_thr_;
 void bxo_abort(void)
@@ -144,12 +147,8 @@ check_updated_binary_bxo(void)
     }
 } // end check_updated_binary_bxo
 
-
-int
-main (int argc_main, char **argv_main)
+static void show_size_bxo(void)
 {
-  clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
-  BxoObject::initialize_predefined_objects();
   printf("sizeof BxoVal : %zd (align %zd)\n",
          sizeof(BxoVal), alignof(BxoVal));
   printf("sizeof BxoObject : %zd (align %zd)\n",
@@ -164,7 +163,40 @@ main (int argc_main, char **argv_main)
          sizeof(std::unique_ptr<BxoSequence>), alignof(std::unique_ptr<BxoSequence>));
   printf("sizeof weak_ptr<BxoObject> : %zd (align %zd)\n",
          sizeof(std::weak_ptr<BxoObject>), alignof(std::weak_ptr<BxoObject>));
+} // end show_size_bxo
+
+int
+main (int argc_main, char **argv_main)
+{
+  clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
+  BxoObject::initialize_predefined_objects();
   check_updated_binary_bxo();
+  bool nogui = false;
+  for (int ix=1; ix<argc_main; ix++)
+    if (!strcmp("--no-gui", argv_main[ix]) || !strcmp("-N", argv_main[ix]) || !strcmp("--batch", argv_main[ix]))
+      nogui = true;
+  QCoreApplication* app = nogui?new QCoreApplication(argc_main, argv_main):new QApplication(argc_main, argv_main);
+  app->setApplicationName("Basixmo");
+  app->setApplicationVersion(basixmo_lastgitcommit);
+  QCommandLineParser cmdlinparser;
+  cmdlinparser.setApplicationDescription("Basile's Experimental Monitor");
+  QCommandLineOption noguioption(QStringList() << "N" << "no-gui",
+                                 "dont start the Qt graphical interface");
+  QCommandLineOption dumpdiroption(QStringList() << "D" << "dump-dir",
+                                   "Use <directory> for dumps (but dont dump if a dash - is given)",
+                                   "directory");
+  QCommandLineOption infooption("info",
+                                "give various info");
+  cmdlinparser.addHelpOption();
+  cmdlinparser.addVersionOption();
+  cmdlinparser.addOption(noguioption);
+  cmdlinparser.addOption(dumpdiroption);
+  cmdlinparser.addOption(infooption);
+  cmdlinparser.process(*app);
+  if (cmdlinparser.isSet(infooption))
+    {
+      show_size_bxo();
+    }
 } // end of main
 
 double
