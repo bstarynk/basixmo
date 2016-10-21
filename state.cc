@@ -154,7 +154,7 @@ BxoLoader::load()
 void
 BxoLoader::create_objects(void)
 {
-  QSqlQuery query;
+  QSqlQuery query(*_ld_sqldb);
   enum { ResixId, Resix_LAST };
   if (!query.exec("SELECT ob_id FROM t_objects"))
     {
@@ -185,7 +185,7 @@ BxoLoader::set_globals(void)
 void
 BxoLoader::name_objects(void)
 {
-  QSqlQuery query;
+  QSqlQuery query(*_ld_sqldb);
   enum { ResixId, ResixName, Resix_LAST };
   if (!query.exec("SELECT nam_oid, nam_str FROM t_names"))
     {
@@ -251,7 +251,7 @@ BxoLoader::link_modules(void)
   typedef std::pair<std::shared_ptr<BxoObject>,void*> Pobjdlh_t;
   std::vector<Pobjdlh_t> vecmod;
   {
-    QSqlQuery query;
+    QSqlQuery query(*_ld_sqldb);
     enum { ResixId, Resix_LAST };
     if (!query.exec("SELECT mod_oid FROM t_modules"))
       {
@@ -310,7 +310,7 @@ BxoLoader::link_modules(void)
 void
 BxoLoader::fill_objects_contents(void)
 {
-  QSqlQuery query;
+  QSqlQuery query(*_ld_sqldb);
   enum { ResixId, ResixMtime, ResixJsoncont, Resix_LAST };
   if (!query.exec("SELECT ob_id, ob_mtime, ob_jsoncont FROM t_objects"))
     {
@@ -407,10 +407,8 @@ void
 BxoDumper::emit_all()
 {
   _du_state = DuEmit;
-  _du_queryinsobj = new QSqlQuery;
-  _du_queryinsobj->prepare("INSERT INTO t_objects "
-                           " (ob_id, ob_mtime, ob_jsoncont, ob_classid, ob_paylkid, ob_paylcont, ob_paylmod)"
-                           " VALUES (?, ?, ?, ?, ?, ?, ?)");
+  _du_queryinsobj = new QSqlQuery(*_du_sqldb);
+  _du_queryinsobj->prepare(insert_object_sql);
   for (BxoObject*pob : _du_objset)
     emit_object_row(pob);
 } // end BxoDumper::emit_all
@@ -419,7 +417,53 @@ void
 BxoDumper::emit_object_row(BxoObject*pob)
 {
   BXO_ASSERT(pob != nullptr && is_dumpable(pob), "non dumpable object");
-#warning should code BxoDumper::emit_object_row
+  BXO_ASSERT(_du_queryinsobj != nullptr, "missing queryinsobj");
+  _du_queryinsobj->bindValue((int)InsobIdIx, pob->strid().c_str());
+  _du_queryinsobj->bindValue((int)InsobMtimIx, (qlonglong) pob->mtime());
+  {
+    const BxoJson& jcont= pob->json_for_content(*this);
+    Json::StyledWriter jwr;
+    _du_queryinsobj->bindValue((int)InsobJsoncontIx, jwr.write(jcont).c_str());
+  }
+  auto pcla = pob->class_obj();
+  if (pcla && is_dumpable(pcla))
+    _du_queryinsobj->bindValue((int)InsobClassidIx, pcla->strid().c_str());
+  else
+    _du_queryinsobj->bindValue((int)InsobClassidIx, "");
+  auto payl = pob->payload();
+  bool pydumpable = false;
+  if (payl)
+    {
+      auto pykindob = payl->kind_ob();
+      if (pykindob && is_dumpable(pykindob))
+        {
+          pydumpable = true;
+          _du_queryinsobj->bindValue((int)InsobPaylkindIx, pykindob->strid().c_str());
+        }
+      else  _du_queryinsobj->bindValue((int)InsobPaylkindIx, "");
+    };
+  if (pydumpable)
+    {
+      const BxoJson&jpy = payl->emit_payload_content(*this);
+      Json::StyledWriter jwr;
+      _du_queryinsobj->bindValue((int)InsobPaylcontIx, jwr.write(jpy).c_str());
+      auto modob = payl->module_ob();
+      if (modob && is_dumpable(modob))
+        _du_queryinsobj->bindValue((int)InsobPaylmodIx, modob->strid().c_str());
+      else
+        _du_queryinsobj->bindValue((int)InsobPaylmodIx, "");
+    }
+  else
+    {
+      _du_queryinsobj->bindValue((int)InsobPaylcontIx, "");
+      _du_queryinsobj->bindValue((int)InsobPaylmodIx, "");
+    }
+  if (!_du_queryinsobj->exec())
+    {
+      BXO_BACKTRACELOG("emit_object_row: SQL failure for " <<  pob->strid()
+                       << " :" <<  _du_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoDumper::emit_object_row SQL failure");
+    }
 } // end of BxoDumper::emit_object_row
 
 void

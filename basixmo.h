@@ -425,6 +425,14 @@ public:
 
 class BxoDumper
 {
+  static constexpr const char* insert_object_sql =
+    "INSERT INTO t_objects "
+    " (ob_id, ob_mtime, ob_jsoncont, ob_classid, ob_paylkid, ob_paylcont, ob_paylmod)"
+    " VALUES (?, ?, ?, ?, ?, ?, ?)";
+  enum { InsobIdIx, InsobMtimIx, InsobJsoncontIx, InsobClassidIx,
+         InsobPaylkindIx, InsobPaylcontIx, InsobPaylmodIx,
+         Insob_LastIx
+       };
   QSqlQuery* _du_queryinsobj;
   QSqlDatabase* _du_sqldb;
   enum { DuStop, DuScan, DuEmit } _du_state;
@@ -943,6 +951,10 @@ public:
   {
     return _hash;
   };
+  time_t mtime() const
+  {
+    return _mtime;
+  };
   ~BxoObject();
   void touch()
   {
@@ -1041,6 +1053,14 @@ public:
   void touch_load(time_t, BxoLoader&);
   void scan_content_dump(BxoDumper&) const;
   BxoJson json_for_content(BxoDumper&) const;
+  std::shared_ptr<BxoObject> class_obj() const
+  {
+    return _classob;
+  };
+  BxoPayload* payload() const
+  {
+    return _payl.get();
+  };
 };        // end class BxoObject
 
 
@@ -1079,7 +1099,7 @@ public:
   virtual std::shared_ptr<BxoObject> kind_ob() const =0;
   virtual std::shared_ptr<BxoObject> module_ob() const =0;
   virtual void scan_payload_content(BxoDumper&) const =0;
-  virtual BxoJson emit_payload_content(BxoDumper&) const =0;
+  virtual const BxoJson emit_payload_content(BxoDumper&) const =0;
   BxoObject* owner () const
   {
     return _owner;
