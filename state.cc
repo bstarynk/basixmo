@@ -351,6 +351,29 @@ BxoLoader::load_objects_payload(void)
 {
 } // end of BxoLoader::load_objects_payload
 
+
+
+
+BxoDumper::BxoDumper(const std::string&dirn)
+  : _du_queryinsobj(nullptr),
+    _du_sqldb(nullptr),
+    _du_state(DuStop),
+    _du_dirname(dirn),
+    _du_objset(),
+    _du_scanque()
+{
+} // end of BxoDumper::BxoDumper
+
+BxoDumper::~BxoDumper()
+{
+  delete _du_queryinsobj;
+  delete _du_sqldb;
+  _du_state = DuStop;
+  _du_objset.clear();
+  _du_scanque.clear();
+} // end of BxoDumper::~BxoDumper
+
+
 bool
 BxoDumper::scan_dumpable(BxoObject*pob)
 {
@@ -384,6 +407,10 @@ void
 BxoDumper::emit_all()
 {
   _du_state = DuEmit;
+  _du_queryinsobj = new QSqlQuery;
+  _du_queryinsobj->prepare("INSERT INTO t_objects "
+                           " (ob_id, ob_mtime, ob_jsoncont, ob_classid, ob_paylkid, ob_paylcont, ob_paylmod)"
+                           " VALUES (?, ?, ?, ?, ?, ?, ?)");
   for (BxoObject*pob : _du_objset)
     emit_object_row(pob);
 } // end BxoDumper::emit_all
@@ -391,6 +418,7 @@ BxoDumper::emit_all()
 void
 BxoDumper::emit_object_row(BxoObject*pob)
 {
+  BXO_ASSERT(pob != nullptr && is_dumpable(pob), "non dumpable object");
 #warning should code BxoDumper::emit_object_row
 } // end of BxoDumper::emit_object_row
 
@@ -462,7 +490,8 @@ BxoObject::json_for_content(BxoDumper&du) const
 } //end BxoObject::json_for_content
 
 
-void BxoObject::load_content(const BxoJson&jv, BxoLoader&ld)
+void
+BxoObject::load_content(const BxoJson&jv, BxoLoader&ld)
 {
   if (jv.isMember("attrs"))
     {

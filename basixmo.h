@@ -70,6 +70,9 @@
 #define BXO_MODULEPREFIX "modu_"
 #define BXO_MODULESUFFIX ".so"
 
+class QSqlDatabase;
+class QSqlQuery;
+
 // from generated _timestamp.c
 extern "C" const char basixmo_timestamp[];
 extern "C" const char basixmo_lastgitcommit[];
@@ -422,17 +425,17 @@ public:
 
 class BxoDumper
 {
+  QSqlQuery* _du_queryinsobj;
+  QSqlDatabase* _du_sqldb;
   enum { DuStop, DuScan, DuEmit } _du_state;
   std::string _du_dirname;
   std::unordered_set<BxoObject*,BxoHashObjPtr> _du_objset;
   std::deque<std::shared_ptr<BxoObject>> _du_scanque;
 public:
   BxoDumper(const std::string&dir = ".");
-  ~BxoDumper()
-  {
-    _du_state = DuStop;
-    _du_objset.clear();
-  };
+  ~BxoDumper();
+  BxoDumper(const BxoDumper&) = delete;
+  BxoDumper(BxoDumper&&) = delete;
   void scan_all(void);
   void emit_all(void);
   void emit_object_row(BxoObject*pob);
@@ -449,7 +452,6 @@ public:
   // dumpobset
 };        // end class BxoDumper
 
-class QSqlDatabase;
 class BxoLoader
 {
   friend class BxoObject;
