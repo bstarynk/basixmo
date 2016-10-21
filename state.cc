@@ -407,15 +407,28 @@ void
 BxoDumper::emit_all()
 {
   _du_state = DuEmit;
+  std::map<BxoObject*, std::string> mapname;
+  std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr> moduset;
   _du_queryinsobj = new QSqlQuery(*_du_sqldb);
   _du_queryinsobj->prepare(insert_object_sql);
   for (BxoObject*pob : _du_objset)
-    emit_object_row(pob);
+    {
+      auto modob = emit_object_row_module(pob);
+      auto obnam = pob->name();
+      if (!obnam.empty())
+        mapname.insert({pob,obnam});
+      if (modob) moduset.insert(modob);
+    }
+  delete _du_queryinsobj;
+#warning BxoDumper::emit_all should emit modules & names
 } // end BxoDumper::emit_all
 
-void
-BxoDumper::emit_object_row(BxoObject*pob)
+
+
+std::shared_ptr<BxoObject>
+BxoDumper::emit_object_row_module(BxoObject*pob)
 {
+  std::shared_ptr<BxoObject> modob;
   BXO_ASSERT(pob != nullptr && is_dumpable(pob), "non dumpable object");
   BXO_ASSERT(_du_queryinsobj != nullptr, "missing queryinsobj");
   _du_queryinsobj->bindValue((int)InsobIdIx, pob->strid().c_str());
@@ -447,7 +460,7 @@ BxoDumper::emit_object_row(BxoObject*pob)
       const BxoJson&jpy = payl->emit_payload_content(*this);
       Json::StyledWriter jwr;
       _du_queryinsobj->bindValue((int)InsobPaylcontIx, jwr.write(jpy).c_str());
-      auto modob = payl->module_ob();
+      modob = payl->module_ob();
       if (modob && is_dumpable(modob))
         _du_queryinsobj->bindValue((int)InsobPaylmodIx, modob->strid().c_str());
       else
@@ -464,7 +477,8 @@ BxoDumper::emit_object_row(BxoObject*pob)
                        << " :" <<  _du_sqldb->lastError().text().toStdString());
       throw std::runtime_error("BxoDumper::emit_object_row SQL failure");
     }
-} // end of BxoDumper::emit_object_row
+  return modob;
+} // end of BxoDumper::emit_object_row_module
 
 void
 BxoObject::scan_content_dump(BxoDumper&du) const

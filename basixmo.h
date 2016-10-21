@@ -446,7 +446,8 @@ public:
   BxoDumper(BxoDumper&&) = delete;
   void scan_all(void);
   void emit_all(void);
-  void emit_object_row(BxoObject*pob);
+  // emit the object, and return its module if any
+  std::shared_ptr<BxoObject> emit_object_row_module(BxoObject*pob);
   bool is_dumpable(BxoObject*pob)
   {
     return pob && _du_objset.find(pob) != _du_objset.end();
