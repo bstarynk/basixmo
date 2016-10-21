@@ -321,7 +321,14 @@ protected:
 public:
   inline BxoVal(const BxoVal&v);
   inline BxoVal(BxoVal&&v);
+  inline BxoVal& operator = (const BxoVal&);
+  inline BxoVal& operator = (BxoVal&&);
   inline ~BxoVal();
+  inline void clear();
+  void reset(void)
+  {
+    clear();
+  };
   inline bool equal(const BxoVal&) const;
   bool operator == (const BxoVal&r) const
   {
@@ -341,7 +348,6 @@ public:
   BxoJson to_json(BxoDumper&) const;
   void scan_dump(BxoDumper&) const;
   static BxoVal from_json(BxoLoader&, const BxoJson&);
-#warning we probably need an BxoVal& operator = (const BxoVal&)
 };        // end class BxoVal
 
 
@@ -697,6 +703,41 @@ BxoVal::BxoVal(const BxoVal&v)
 } // end BxoVal::BxoVal(const BxoVal&v)
 
 
+BxoVal& BxoVal::operator =(const BxoVal&s)
+{
+  auto tk = _kind;
+  auto sk = s._kind;
+  if (tk == sk)
+    {
+      switch (s._kind)
+        {
+        case BxoVKind::NoneK:
+          _ptr = nullptr;
+          break;
+        case BxoVKind::IntK:
+          _int = s._int;
+          break;
+        case BxoVKind::StringK:
+          _str = s._str;
+          break;
+        case BxoVKind::ObjectK:
+          _obj = s._obj;
+          break;
+        case BxoVKind::SetK:
+          _set = s._set;
+          break;
+        case BxoVKind::TupleK:
+          _tup = s._tup;
+          break;
+        }
+      return *this;
+    }
+  if (tk != BxoVKind::NoneK)
+    clear();
+  new(this) BxoVal(s);
+  return *this;
+} // end BxoVal::operator =(const BxoVal&)
+
 BxoVal::BxoVal(BxoVal&&v)
   : _kind(v._kind)
 {
@@ -726,6 +767,73 @@ BxoVal::BxoVal(BxoVal&&v)
 } // end BxoVal::BxoVal(BxoVal&&v)
 
 
+
+BxoVal& BxoVal::operator =(BxoVal&&s)
+{
+  auto tk = _kind;
+  auto sk = s._kind;
+  if (tk == sk)
+    {
+      switch (s._kind)
+        {
+        case BxoVKind::NoneK:
+          _ptr = nullptr;
+          break;
+        case BxoVKind::IntK:
+          _int = s._int;
+          break;
+        case BxoVKind::StringK:
+          _str = std::move(s._str);
+          break;
+        case BxoVKind::ObjectK:
+          _obj = std::move(s._obj);
+          break;
+        case BxoVKind::SetK:
+          _set = std::move(s._set);
+          break;
+        case BxoVKind::TupleK:
+          _tup = std::move(s._tup);
+          break;
+        }
+      *const_cast<BxoVKind*>(&s._kind) = BxoVKind::NoneK;
+      s._ptr = nullptr;
+      return *this;
+    }
+  if (tk != BxoVKind::NoneK)
+    clear();
+  new(this) BxoVal(s);
+  return *this;
+} // end BxoVal::operator =(BxoVal&&)
+
+
+void BxoVal::clear()
+{
+  auto k = _kind;
+  *const_cast<BxoVKind*>(&_kind) = BxoVKind::NoneK;
+  switch(k)
+    {
+    case BxoVKind::NoneK:
+      break;
+    case BxoVKind::IntK:
+      _int = 0;
+      break;
+    case BxoVKind::StringK:
+      _str.reset();
+      break;
+    case BxoVKind::ObjectK:
+      _obj.reset();
+      break;
+    case BxoVKind::SetK:
+      _set.reset();
+    case BxoVKind::TupleK:
+      _tup.reset();
+      break;
+    }
+  _ptr = nullptr;
+} // end BxoVal::clear()
+
+
+
 BxoVal::~BxoVal()
 {
   switch(_kind)
@@ -748,8 +856,11 @@ BxoVal::~BxoVal()
       _tup.~shared_ptr<const BxoTuple>();
       break;
     }
+  *const_cast<BxoVKind*>(&_kind) = BxoVKind::NoneK;
   _ptr = nullptr;
-}
+} // end BxoVal::~BxoVal
+
+
 
 enum class BxoSpace: std::uint8_t
 {
