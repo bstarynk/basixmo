@@ -440,7 +440,12 @@ class BxoDumper
   std::unordered_set<BxoObject*,BxoHashObjPtr> _du_objset;
   std::deque<std::shared_ptr<BxoObject>> _du_scanque;
   std::deque<std::pair<std::function<void(BxoDumper&,BxoVal)>,BxoVal>> _du_todoafterscan;
+  static std::string _defaultdumpdir_;
 public:
+  static void set_default_dump_dir(const std::string&s)
+  {
+    _defaultdumpdir_=s;
+  };
   BxoDumper(const std::string&dir = ".");
   ~BxoDumper();
   BxoDumper(const BxoDumper&) = delete;

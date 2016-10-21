@@ -354,6 +354,8 @@ BxoLoader::load_objects_payload(void)
 
 
 
+std::string BxoDumper::_defaultdumpdir_;
+
 BxoDumper::BxoDumper(const std::string&dirn)
   : _du_queryinsobj(nullptr),
     _du_sqldb(nullptr),

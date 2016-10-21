@@ -185,18 +185,39 @@ main (int argc_main, char **argv_main)
   QCommandLineOption dumpdiroption(QStringList() << "D" << "dump-dir",
                                    "Use <directory> for dumps (but dont dump if a dash - is given)",
                                    "directory");
+  QCommandLineOption loaddiroption("load-dir",
+                                   "Use <directory> for load",
+                                   "directory");
   QCommandLineOption infooption("info",
                                 "give various info");
   cmdlinparser.addHelpOption();
   cmdlinparser.addVersionOption();
   cmdlinparser.addOption(noguioption);
   cmdlinparser.addOption(dumpdiroption);
+  cmdlinparser.addOption(loaddiroption);
   cmdlinparser.addOption(infooption);
   cmdlinparser.process(*app);
   if (cmdlinparser.isSet(infooption))
     {
       show_size_bxo();
     }
+  if (cmdlinparser.isSet(dumpdiroption))
+    {
+      BxoDumper::set_default_dump_dir(cmdlinparser.value(dumpdiroption).toStdString());
+    }
+  if (cmdlinparser.isSet(loaddiroption))
+    {
+      BxoLoader loader {cmdlinparser.value(loaddiroption).toStdString()};
+      loader.load();
+    }
+  else
+    {
+      BxoLoader loader;
+      loader.load();
+    }
+  if (!nogui)
+    app->exec();
+#warning main: should handle the dump option
 } // end of main
 
 double
