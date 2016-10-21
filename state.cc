@@ -407,20 +407,58 @@ void
 BxoDumper::emit_all()
 {
   _du_state = DuEmit;
-  std::map<BxoObject*, std::string> mapname;
+  BXO_ASSERT(_du_sqldb != nullptr, "no dump sqldb");
+  std::map<std::string, BxoObject*> mapname;
   std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr> moduset;
   _du_queryinsobj = new QSqlQuery(*_du_sqldb);
   _du_queryinsobj->prepare(insert_object_sql);
+  // emit all dumpable objects
   for (BxoObject*pob : _du_objset)
     {
+      BXO_ASSERT(pob != nullptr, "null pob");
       auto modob = emit_object_row_module(pob);
       auto obnam = pob->name();
       if (!obnam.empty())
-        mapname.insert({pob,obnam});
-      if (modob) moduset.insert(modob);
+        mapname.insert({obnam,pob});
+      if (modob)
+        moduset.insert(modob);
     }
   delete _du_queryinsobj;
-#warning BxoDumper::emit_all should emit modules & names
+  // emit the names
+  {
+    QSqlQuery insnamquery(*_du_sqldb);
+    insnamquery.prepare("INSERT INTO t_names (nam_str, namoid) VALUES(?, ?)");
+    enum { InsnamStrIx, InsnamIdIx, Insnam_Last };
+    for (auto p: mapname)
+      {
+        insnamquery.bindValue((int)InsnamStrIx, p.first.c_str());
+        insnamquery.bindValue((int)InsnamIdIx, p.second->strid().c_str());
+        if (!insnamquery.exec())
+          {
+            BXO_BACKTRACELOG("emit_all: SQL failure for name insertion name="
+                             << p.first << " id=" << p.second->strid()
+                             << " : " << _du_sqldb->lastError().text().toStdString());
+            throw std::runtime_error("BxoDumper::emit_all SQL failure for name insertion");
+          }
+      }
+  }
+  // emit the modules
+  {
+    QSqlQuery insmodquery(*_du_sqldb);
+    insmodquery.prepare("INSERT INTO t_modules (mod_oid) VALUES(?)");
+    enum { InsmodIdIx, Insmod_Last };
+    for (auto modob : moduset)
+      {
+        BXO_ASSERT(modob != nullptr, "null modob");
+        insmodquery.bindValue((int)InsmodIdIx, modob->strid().c_str());
+        if (!insmodquery.exec())
+          {
+            BXO_BACKTRACELOG("emit_all: SQL failure for module insertion id=" << modob->strid()
+                             <<  " : " << _du_sqldb->lastError().text().toStdString());
+            throw std::runtime_error("BxoDumper::emit_all SQL failure for module insertion");
+          }
+      }
+  }
 } // end BxoDumper::emit_all
 
 
