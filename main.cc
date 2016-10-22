@@ -165,6 +165,9 @@ static void show_size_bxo(void)
          sizeof(std::weak_ptr<BxoObject>), alignof(std::weak_ptr<BxoObject>));
 } // end show_size_bxo
 
+
+
+
 int
 main (int argc_main, char **argv_main)
 {
@@ -203,7 +206,11 @@ main (int argc_main, char **argv_main)
     }
   if (cmdlinparser.isSet(dumpdiroption))
     {
-      BxoDumper::set_default_dump_dir(cmdlinparser.value(dumpdiroption).toStdString());
+      auto dumpdirstr = cmdlinparser.value(dumpdiroption).toStdString();
+      if (dumpdirstr.empty() || dumpdirstr=="-")
+        BxoDumper::set_default_dump_dir("");
+      else
+        BxoDumper::set_default_dump_dir(dumpdirstr);
     }
   if (cmdlinparser.isSet(loaddiroption))
     {
@@ -217,6 +224,12 @@ main (int argc_main, char **argv_main)
     }
   if (!nogui)
     app->exec();
+  if (!BxoDumper::default_dump_dir().empty())
+    {
+      fprintf(stderr, "dumping into %s\n", BxoDumper::default_dump_dir().c_str());
+      BxoDumper du(BxoDumper::default_dump_dir());
+      du.full_dump();
+    }
 #warning main: should handle the dump option
 } // end of main
 

@@ -356,11 +356,25 @@ BxoLoader::load_objects_payload(void)
 
 std::string BxoDumper::_defaultdumpdir_;
 
+std::string
+BxoDumper::generate_temporary_suffix(void)
+{
+  char sbuf[80];
+  memset(sbuf, 0, sizeof(sbuf));
+  snprintf(sbuf, sizeof(sbuf), "+r%x-%x_p%d.tmp~",
+           (unsigned)BxoRandom::random_nonzero_32u(),
+           (unsigned)BxoRandom::random_nonzero_32u(),
+           (int)getpid());
+  return std::string {sbuf};
+}//end BxoDumper::generate_temporary_suffix
+
+
 BxoDumper::BxoDumper(const std::string&dirn)
   : _du_queryinsobj(nullptr),
     _du_sqldb(nullptr),
     _du_state(DuStop),
     _du_dirname(dirn),
+    _du_tempsuffix(generate_temporary_suffix()),
     _du_objset(),
     _du_scanque()
 {
@@ -468,6 +482,15 @@ BxoDumper::emit_all()
       }
   }
 } // end BxoDumper::emit_all
+
+
+
+void
+BxoDumper::full_dump(void)
+{
+#warning BxoDumper::full_dump unimplemented
+} // end BxoDumper::full_dump
+
 
 
 

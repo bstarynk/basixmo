@@ -437,14 +437,20 @@ class BxoDumper
   QSqlDatabase* _du_sqldb;
   enum { DuStop, DuScan, DuEmit } _du_state;
   std::string _du_dirname;
+  std::string _du_tempsuffix;
   std::unordered_set<BxoObject*,BxoHashObjPtr> _du_objset;
   std::deque<std::shared_ptr<BxoObject>> _du_scanque;
   std::deque<std::pair<std::function<void(BxoDumper&,BxoVal)>,BxoVal>> _du_todoafterscan;
   static std::string _defaultdumpdir_;
+  static std::string generate_temporary_suffix(void);
 public:
   static void set_default_dump_dir(const std::string&s)
   {
     _defaultdumpdir_=s;
+  };
+  static const std::string& default_dump_dir(void)
+  {
+    return _defaultdumpdir_;
   };
   BxoDumper(const std::string&dir = ".");
   ~BxoDumper();
@@ -452,6 +458,7 @@ public:
   BxoDumper(BxoDumper&&) = delete;
   void scan_all(void);
   void emit_all(void);
+  void full_dump(void);
   void do_after_scan(std::function<void(BxoDumper&,BxoVal)> f, BxoVal v)
   {
     BXO_ASSERT(_du_state == DuScan, "non-scan state for do_after_scan");
