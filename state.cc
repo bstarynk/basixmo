@@ -152,6 +152,15 @@ BxoLoader::load()
   fill_objects_contents ();
   // load_objects_class ();
   // load_objects_payload ();
+  _ld_sqldb->close();
+  int nbobj = _ld_idtoobjmap.size();
+  _ld_idtoobjmap.clear();
+  double elaptim = bxo_elapsed_real_time() - _ld_startelapsedtime;
+  double cputim = bxo_process_cpu_time () - _ld_startprocesstime;
+  printf("\n"
+         "Loaded %d objects in %.3f elapsed, %.4f cpu seconds (%.3f elapsed, %.3f cpu µs/obj)\n",
+         nbobj, elaptim, cputim, 1.0e6*(elaptim/nbobj), 1.0e6*(cputim/nbobj));
+  fflush(nullptr);
 } // end of BxoLoader::load
 
 void

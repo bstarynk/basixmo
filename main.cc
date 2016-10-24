@@ -231,6 +231,9 @@ main (int argc_main, char **argv_main)
       du.full_dump();
     }
 #warning main: should handle the dump option
+  printf("Basixmo ending pid %d (%.4f elapsed, %.4f process cpu seconds)\n",
+         (int)getpid(), bxo_elapsed_real_time (), bxo_process_cpu_time ());
+  fflush(nullptr);
 } // end of main
 
 double
