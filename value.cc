@@ -152,7 +152,7 @@ BxoVal::to_json(BxoDumper&du) const
     case BxoVKind::NoneK:
       return BxoJson::nullSingleton();
     case BxoVKind::IntK:
-      return BxoJson((Json::Int64)_int);
+      return BxoJson((long long)_int);
     case BxoVKind::StringK:
       return BxoJson(_str->string());
     case BxoVKind::ObjectK:

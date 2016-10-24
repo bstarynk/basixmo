@@ -439,11 +439,16 @@ class BxoDumper
   std::string _du_dirname;
   std::string _du_tempsuffix;
   std::unordered_set<BxoObject*,BxoHashObjPtr> _du_objset;
+  std::set<std::string> _du_outfilset;
   std::deque<std::shared_ptr<BxoObject>> _du_scanque;
   std::deque<std::pair<std::function<void(BxoDumper&,BxoVal)>,BxoVal>> _du_todoafterscan;
   static std::string _defaultdumpdir_;
   static std::string generate_temporary_suffix(void);
+  void rename_temporary(const std::string&filpath);
 public:
+  // given a relative filpath, register it and generate it pristine
+  // variant with the temporary suffix
+  std::string output_path(const std::string&filpath);
   static void set_default_dump_dir(const std::string&s)
   {
     _defaultdumpdir_=s;

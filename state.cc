@@ -119,7 +119,7 @@ BxoLoader::load()
       BXO_BACKTRACELOG("load: missing QSQLITE driver");
       throw std::runtime_error("BxoLoader::load missing QSQLITE");
     }
-  _ld_sqldb = new QSqlDatabase();
+  _ld_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE"));
   QString sqlitepath((_ld_dirname+"/"+basixmo_statebase+".sqlite").c_str());
   QString sqlpath((_ld_dirname+"/"+basixmo_statebase+".sql").c_str());
   if (!QFileInfo::exists(sqlitepath) || !QFileInfo::exists(sqlpath))
@@ -484,13 +484,59 @@ BxoDumper::emit_all()
 } // end BxoDumper::emit_all
 
 
+std::string
+BxoDumper::output_path(const std::string& filpath)
+{
+  if (filpath.empty() || filpath[0] == '/'|| filpath.find("..") != std::string::npos
+      || !(isalnum(filpath[0])|| filpath[0]=='_')
+      || filpath[filpath.size()-1]=='/')
+    {
+      BXO_BACKTRACELOG("output_path: invalid filpath " << filpath);
+      throw std::runtime_error("BxoDumper::output_path invalid filpath");
+    }
+  if (_du_outfilset.find(filpath) != _du_outfilset.end())
+    {
+      BXO_BACKTRACELOG("output_path: duplicate filpath " << filpath);
+      throw std::runtime_error("BxoDumper::output_path duplicate filpath");
+    }
+  _du_outfilset.insert(filpath);
+  return _du_dirname + "/" + filpath + _du_tempsuffix;
+} // end of BxoDumper::output_path
 
 void
 BxoDumper::full_dump(void)
 {
+  BXO_ASSERT(_du_sqldb == nullptr, "got an sqldb");
+  auto sqlitepath = output_path(std::string(basixmo_statebase)+".sqlite");
+  _du_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE"));
+  _du_sqldb->setDatabaseName(QString(sqlitepath.c_str()));
+  if (!_du_sqldb->open())
+    {
+      BXO_BACKTRACELOG("full_dump " << sqlitepath
+                       << " failed to open: " << _du_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoDumper::full_dump open failutr");
+    }
+  scan_all();
+  emit_all();
+  _du_sqldb->close();
+  while (!_du_outfilset.empty())
+    {
+      std::string outpath;
+      {
+        outpath = *_du_outfilset.begin();
+      }
+      rename_temporary(outpath);
+    }
 #warning BxoDumper::full_dump unimplemented
 } // end BxoDumper::full_dump
 
+void
+BxoDumper::rename_temporary(const std::string&filpath)
+{
+  std::string tempath = filpath+_du_tempsuffix;
+  std::string backupath = filpath+"~";
+#warning BxoDumper::rename_temporary unimplemented
+} // end BxoDumper::rename_temporary
 
 
 
