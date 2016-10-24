@@ -223,24 +223,35 @@ BxoLoader::name_objects(void)
     }
 } // end of BxoLoader::name_objects
 
+std::shared_ptr<BxoObject>
+BxoLoader::name_the_predefined(const std::string&nam, const std::string&idstr)
+{
+  auto pob = find_loadedobj(idstr);
+  if (!pob)
+    {
+      BXO_BACKTRACELOG("name_the_predefined dont find idstr=" << idstr);
+      throw  std::runtime_error("BxoLoader::name_the_predefined missing");
+    }
+  if (!pob->register_named(nam))
+    {
+      BXO_BACKTRACELOG("name_the_predefined for idstr=" << idstr
+                       << " failed to name " << nam);
+      throw  std::runtime_error("BxoLoader::name_the_predefined failed naming");
+    }
+  return pob;
+}
 
 void
 BxoLoader::name_predefined(void)
 {
 #define BXO_HAS_PREDEFINED(Nam,Idstr,Hid,Loid,Hash)  do {       \
-    auto pob = find_loadedobj(#Idstr);                          \
-    if (pob) {                                                  \
-      if (!pob->register_named(#Nam))                           \
-        fprintf(stderr,                                         \
-                "Failed to name predefined %s : %s\n",          \
-                #Idstr, #Nam);                                  \
-    }                                                           \
-    else                                                        \
-      fprintf(stderr,                                           \
-                 "no predefined object %s to name : %s\n",      \
-                 #Idstr, #Nam);                                 \
+    auto pob = name_the_predefined(#Nam,#Idstr);                \
+    BXO_ASSERT (pob, "no pob for idstr=" << #Idstr);            \
+    BXO_ASSERT (pob->hash() == Hash, "bad hash");               \
+    BXO_ASSERT (pob->strid() == #Idstr, "bad idstr");           \
+    BXO_ASSERT (pob->hid() == Hid, "bad hid");                  \
+    BXO_ASSERT (pob->loid() == Loid, "bad hid");                \
   } while(0);
-
 #include "_bxo_predef.h"
   fflush(nullptr);
 } // end of BxoLoader::name_predefined

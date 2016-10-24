@@ -501,6 +501,7 @@ class BxoLoader
   void fill_objects_contents(void);
   void load_objects_class(void);
   void load_objects_payload(void);
+  std::shared_ptr<BxoObject> name_the_predefined(const std::string&nam, const std::string&idstr);
 protected:
   void register_objref(const std::string&,std::shared_ptr<BxoObject> obp);
 public:
@@ -984,6 +985,14 @@ public:
   void touch()
   {
     _mtime = ::time(nullptr);
+  };
+  Bxo_hid_t hid() const
+  {
+    return _hid;
+  };
+  Bxo_loid_t loid() const
+  {
+    return _loid;
   };
   bool same(const BxoObject&r) const
   {
