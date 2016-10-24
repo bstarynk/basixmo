@@ -339,13 +339,15 @@ BxoLoader::fill_objects_contents(void)
           BXO_BACKTRACELOG("fill_objects_contents cant find " << idstr);
           throw std::runtime_error("BxoLoader::fill_objects_contents missing object");
         }
-      std::string jsonstr = query.value(ResixId).toString().toStdString();
+      std::string jsonstr = query.value(ResixJsoncont).toString().toStdString();
       Json::Reader jrd(Json::Features::strictMode());
       BxoJson jv;
       if (!jrd.parse(jsonstr,jv,false))
         {
           BXO_BACKTRACELOG("fill_objects_contents parse failure for " << idstr
-                           << ": " << jrd.getFormattedErrorMessages());
+                           << ": " << jrd.getFormattedErrorMessages()
+                           << std::endl << "jsonstr=" << jsonstr
+                           << std::endl);
           throw std::runtime_error("BxoLoader::fill_objects_contents Json parse failure");
         }
       pob->touch_load((time_t)mtimdb,*this);
