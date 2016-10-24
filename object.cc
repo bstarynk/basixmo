@@ -296,9 +296,9 @@ BxoObject::load_objref(BxoLoader&ld, const std::string& idstr)
       throw std::runtime_error("BxoObject::load_objref bad idstr");
     }
   auto h = hash_from_hid_loid(hid,loid);
-  BxoObject* obj = new BxoObject(LoadedTag {},h,hid,loid);
-  ld.register_objref(idstr,obj->shared_from_this());
-  return obj->shared_from_this();
+  pob.reset(new BxoObject(LoadedTag {},h,hid,loid));
+  ld.register_objref(idstr,pob);
+  return pob;
 } // end BxoObject::load_objref
 
 
