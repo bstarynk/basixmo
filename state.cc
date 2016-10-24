@@ -531,6 +531,36 @@ BxoDumper::output_path(const std::string& filpath)
 void
 BxoDumper::full_dump(void)
 {
+  if (::access(_du_dirname.c_str(), F_OK))
+    {
+      if (mkdir(_du_dirname.c_str(), 0750))
+        {
+          BXO_BACKTRACELOG("full_dump mkdir " << _du_dirname
+                           << " failed: " << strerror(errno));
+          throw std::runtime_error("BxoDumper::full_dump mkdir failed");
+        }
+    }
+  {
+    auto timestampath = output_path(std::string("_BxoDumpTimeStamp"));
+    FILE* filts = fopen(timestampath.c_str(), "w");
+    if (!filts)
+      {
+        BXO_BACKTRACELOG("full_dump failed to open timestamp " << timestampath
+                         << " : " << strerror(errno));
+        throw std::runtime_error("BxoDumper::full_dump timestamp fopen failed");
+      }
+    time_t nowt = time(nullptr);
+    struct tm nowtm = {};
+    localtime_r(&nowt, &nowtm);
+    char timbuf[80];
+    memset (timbuf, 0, sizeof(timbuf));
+    strftime(timbuf, sizeof(timbuf), "%c %Z", &nowtm);
+    fprintf(filts, "Bxo-dump: %s\n", timbuf);
+    fprintf(filts, "Bxo-timestamp: %s\n", basixmo_timestamp);
+    fprintf(filts, "Bxo-dir: %s\n", basixmo_directory);
+    fprintf(filts, "Bxo-lastgitcommit: %s\n", basixmo_lastgitcommit);
+    fclose(filts);
+  }
   BXO_ASSERT(_du_sqldb == nullptr, "got an sqldb");
   auto sqlitepath = output_path(std::string(basixmo_statebase)+".sqlite");
   _du_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE"));
