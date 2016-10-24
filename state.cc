@@ -16,6 +16,9 @@
       <http://www.gnu.org/licenses/>.
 **/
 #include "basixmo.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <QtSql>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -530,12 +533,67 @@ BxoDumper::full_dump(void)
 #warning BxoDumper::full_dump unimplemented
 } // end BxoDumper::full_dump
 
+bool
+BxoDumper::same_file_content(const char*path1, const char*path2)
+{
+  BXO_ASSERT(path1 != nullptr, "null path1");
+  BXO_ASSERT(path2 != nullptr, "null path2");
+  bool samefilecont = false;
+  struct ::stat stat1;
+  struct ::stat stat2;
+  memset (&stat1, 0, sizeof(stat1));
+  memset (&stat2, 0, sizeof(stat2));
+  if (!stat(path1, &stat1) && !stat(path2, &stat2)
+      && stat1.st_size == stat2.st_size)
+    {
+      FILE*f1 = fopen(path1, "r");
+      if (!f1) return false;
+      FILE*f2 = fopen(path2, "r");
+      if (!f2)
+        {
+          fclose(f1);
+          return false;
+        }
+      samefilecont = true;
+      while (samefilecont)
+        {
+          int c1 = fgetc(f1);
+          int c2 = fgetc(f2);
+          if (c1 != c2) samefilecont = false;
+          else if (c1 == EOF) break;
+        };
+      if (f1) fclose(f1);
+      if (f2) fclose(f2);
+    }
+  return samefilecont;
+} // end BxoDumper::same_file_content
+
 void
 BxoDumper::rename_temporary(const std::string&filpath)
 {
   std::string tempath = filpath+_du_tempsuffix;
   std::string backupath = filpath+"~";
-#warning BxoDumper::rename_temporary unimplemented
+  if (same_file_content(tempath.c_str(), filpath.c_str()))
+    {
+      if (::remove(tempath.c_str()))
+        {
+          BXO_BACKTRACELOG("rename_temporary: failed to remove " << tempath
+                           << " of same content as " << filpath
+                           << ":" << strerror(errno));
+          throw std::runtime_error("BxoDumper::rename_temporary failed to remove temporary");
+        };
+    }
+  else
+    {
+      (void) ::rename(filpath.c_str(), backupath.c_str());
+      if (::rename(tempath.c_str(), filpath.c_str()))
+        {
+          BXO_BACKTRACELOG("rename_temporary: failed to rename "
+                           << tempath << " -> " << filpath
+                           << " : " << strerror(errno));
+          throw std::runtime_error("BxoDumper::rename_temporary failed to rename");
+        }
+    }
 } // end BxoDumper::rename_temporary
 
 

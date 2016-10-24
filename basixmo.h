@@ -449,6 +449,7 @@ public:
   // given a relative filpath, register it and generate it pristine
   // variant with the temporary suffix
   std::string output_path(const std::string&filpath);
+  static bool same_file_content(const char*path1, const char*path2);
   static void set_default_dump_dir(const std::string&s)
   {
     _defaultdumpdir_=s;

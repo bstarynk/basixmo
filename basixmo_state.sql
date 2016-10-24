@@ -30,5 +30,52 @@ CREATE TABLE t_names (nam_str PRIMARY KEY ASC NOT NULL UNIQUE,
                       nam_oid VARCHAR(20) NOT NULL UNIQUE);
 CREATE TABLE t_modules (mod_oid VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE);
 CREATE UNIQUE INDEX x_namedid ON t_names (nam_oid);
+INSERT INTO t_params VALUES('basixmo_format_version','Bxo2016A');
+INSERT INTO t_names VALUES('comment','_4xS1CSbRUFBW6PJiJ');
+INSERT INTO t_names VALUES('payload_assoval','_5JG8lVw6jwlUT7PLK');
+INSERT INTO t_names VALUES('payload_hashset','_8261sbF1f9ohzu2Iu');
+INSERT INTO t_objects VALUES('_4xS1CSbRUFBW6PJiJ',1472212346,'
+{
+ "@name": "comment",
+ "attrs": [
+  { "at" : "_4xS1CSbRUFBW6PJiJ", "va" : "for comments, often a string" }
+ ],
+ "comps": [
+ ]
+}
+',
+'',
+'',
+'',
+'');
+INSERT INTO t_objects VALUES('_5JG8lVw6jwlUT7PLK',1473050875,'
+{
+ "@name": "payload_assoval",
+ "attrs": [
+  { "at" : "_4xS1CSbRUFBW6PJiJ", "va" : "for assovaldata payload" }
+ ],
+ "comps": [
+ ]
+}
+',
+'',
+'',
+'',
+'');
+
+INSERT INTO t_objects VALUES('_8261sbF1f9ohzu2Iu',1473049630,'
+{
+ "@name": "payload_hashset",
+ "attrs": [
+  { "at" : "_4xS1CSbRUFBW6PJiJ", "va" : "for hashset payload" }
+ ],
+ "comps": [
+ ]
+}
+',
+'',
+'',
+'',
+'');
 COMMIT;
 -- basixmo-dump-state end dump basixmo_state.sqlite
