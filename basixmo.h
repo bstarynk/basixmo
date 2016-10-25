@@ -812,16 +812,16 @@ BxoVal::BxoVal(BxoVal&&v)
       _int = v._int;
       break;
     case BxoVKind::StringK:
-      _str = std::move(v._str);
+      new(&_str) std::shared_ptr<const BxoString>(std::move(v._str));
       break;
     case BxoVKind::ObjectK:
-      _obj = std::move(v._obj);
+      new(&_obj) std::shared_ptr<BxoObject>(std::move(v._obj));
       break;
     case BxoVKind::SetK:
-      _set = std::move(v._set);
+      new(&_set) std::shared_ptr<const BxoSet>(std::move(v._set));
       break;
     case BxoVKind::TupleK:
-      _tup = std::move(v._tup);
+      new(&_tup)  std::shared_ptr<const BxoTuple>(std::move(v._tup));
       break;
     }
   *const_cast<BxoVKind*>(&v._kind) = BxoVKind::NoneK;
