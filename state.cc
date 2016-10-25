@@ -44,6 +44,7 @@ BxoLoader::obj_from_idstr(const std::string&s)
 BxoLoader::~BxoLoader()
 {
   delete _ld_sqldb;
+  _ld_sqldb = nullptr;
 }
 
 const BxoSet*
@@ -156,6 +157,7 @@ BxoLoader::load()
   int nbobj = _ld_idtoobjmap.size();
   _ld_idtoobjmap.clear();
   delete _ld_sqldb;
+  _ld_sqldb = nullptr;
   QSqlDatabase::removeDatabase("bxoloader");
   double elaptim = bxo_elapsed_real_time() - _ld_startelapsedtime;
   double cputim = bxo_process_cpu_time () - _ld_startprocesstime;
@@ -412,7 +414,9 @@ BxoDumper::BxoDumper(const std::string&dirn)
 BxoDumper::~BxoDumper()
 {
   delete _du_queryinsobj;
+  _du_queryinsobj = nullptr;
   delete _du_sqldb;
+  _du_sqldb = nullptr;
   _du_state = DuStop;
   _du_objset.clear();
   _du_scanque.clear();
@@ -475,6 +479,7 @@ BxoDumper::emit_all()
         moduset.insert(modob);
     }
   delete _du_queryinsobj;
+  _du_queryinsobj = nullptr;
   // emit the names
   {
     QSqlQuery insnamquery(*_du_sqldb);
@@ -595,7 +600,10 @@ BxoDumper::full_dump(void)
       }
       rename_temporary(outpath);
     }
+  delete _du_queryinsobj;
+  _du_queryinsobj = nullptr;
   delete _du_sqldb;
+  _du_sqldb = nullptr;
 #warning BxoDumper::full_dump unimplemented
 } // end BxoDumper::full_dump
 
