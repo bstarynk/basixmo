@@ -171,6 +171,26 @@ extern "C" void bxo_abort(void) __attribute__((noreturn));
   BXO_ASSERT_AT_BIS(__FILE__,__LINE__,Prop,Log)
 
 
+
+//////////////// to ease debugging
+class BxoOut
+{
+  std::function<void(std::ostream&)> _fn_out;
+public:
+  BxoOut(std::function<void(std::ostream&)> fout): _fn_out(fout) {};
+  ~BxoOut() = default;
+  void out(std::ostream&os) const
+  {
+    _fn_out(os);
+  };
+};
+inline std::ostream& operator << (std::ostream& os, const BxoOut& bo)
+{
+  bo.out(os);
+  return os;
+};
+////////////////
+
 typedef uint32_t BxoHash_t;
 
 typedef uint32_t Bxo_hid_t;
