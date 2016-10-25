@@ -463,6 +463,56 @@ BxoDumper::scan_all(void)
   BXO_ASSERT(nbscan>0, "BxoDumper::scan_all bad nbscan:" << nbscan);
 } // end of BxoDumper::scan_all
 
+
+
+
+void
+BxoDumper::initialize_data_schema()
+{
+  BXO_ASSERT(_du_sqldb != nullptr, "no _du_sqldb");
+  QSqlQuery query(*_du_sqldb);
+  if (!query.exec("CREATE TABLE IF NOT EXISTS t_params "
+                  "(par_name VARCHAR(35) PRIMARY KEY ASC NOT NULL UNIQUE,"
+                  "  par_value TEXT NOT NULL)"))
+    {
+      BXO_BACKTRACELOG("initialize_data_schema Sql query failure t_params: " <<  _du_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::initialize_data_schema query failure t_params");
+    }
+  if (!query.exec("CREATE TABLE IF NOT EXISTS t_objects "
+                  "(ob_id VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE,"
+                  " ob_mtime DATETIME,"
+                  " ob_jsoncont TEXT NOT NULL,"
+                  " ob_classid VARCHAR(20) NOT NULL,"
+                  " ob_paylkid VARCHAR(20) NOT NULL,"
+                  " ob_paylcont TEXT NOT NULL,"
+                  " ob_paylmod VARCHAR(20) NOT NULL)"))
+    {
+      BXO_BACKTRACELOG("initialize_data_schema Sql query failure t_objects: " <<  _du_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::initialize_data_schema query failure t_objects");
+    }
+  if (!query.exec("CREATE TABLE IF NOT EXISTS t_names "
+                  "(nam_str PRIMARY KEY ASC NOT NULL UNIQUE,"
+                  " nam_oid  VARCHAR(20) NOT NULL UNIQUE)"))
+    {
+      BXO_BACKTRACELOG("initialize_data_schema Sql query failure t_names: " <<  _du_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::initialize_data_schema query failure t_names");
+    }
+  if (!query.exec("CREATE TABLE IF NOT EXISTS t_modules "
+                  "(mod_oid VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE)"))
+    {
+      BXO_BACKTRACELOG("initialize_data_schema Sql query failure t_modules: " <<  _du_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::initialize_data_schema query failure t_modules");
+    }
+  if (!query.exec("CREATE UNIQUE INDEX IF NOT EXISTS "
+                  " x_namedid ON t_names (nam_oid)"))
+    {
+      BXO_BACKTRACELOG("initialize_data_schema Sql query failure x_namedid: " <<  _du_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::initialize_data_schema query failure x_namedid");
+    }
+} // end BxoDumper::initialize_data_schema
+
+
+
 void
 BxoDumper::emit_all()
 {
@@ -595,6 +645,7 @@ BxoDumper::full_dump(void)
       throw std::runtime_error("BxoDumper::full_dump open failutr");
     }
   scan_all();
+  initialize_data_schema();
   emit_all();
   long nbobj = _du_objset.size();
   int nbfil = 0;

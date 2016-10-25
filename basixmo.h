@@ -485,6 +485,7 @@ public:
   BxoDumper(const BxoDumper&) = delete;
   BxoDumper(BxoDumper&&) = delete;
   void scan_all(void);
+  void initialize_data_schema(void);
   void emit_all(void);
   void full_dump(void);
   void do_after_scan(std::function<void(BxoDumper&,BxoVal)> f, BxoVal v)
