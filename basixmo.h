@@ -456,6 +456,8 @@ class BxoDumper
   QSqlQuery* _du_queryinsobj;
   QSqlDatabase* _du_sqldb;
   enum { DuStop, DuScan, DuEmit } _du_state;
+  double _du_startelapsedtime;
+  double _du_startprocesstime;
   std::string _du_dirname;
   std::string _du_tempsuffix;
   std::unordered_set<BxoObject*,BxoHashObjPtr> _du_objset;

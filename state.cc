@@ -404,6 +404,8 @@ BxoDumper::BxoDumper(const std::string&dirn)
   : _du_queryinsobj(nullptr),
     _du_sqldb(nullptr),
     _du_state(DuStop),
+    _du_startelapsedtime(bxo_elapsed_real_time ()),
+    _du_startprocesstime(bxo_process_cpu_time ()),
     _du_dirname(dirn),
     _du_tempsuffix(generate_temporary_suffix()),
     _du_objset(),
@@ -443,12 +445,14 @@ BxoDumper::scan_all(void)
   _du_state = DuScan;
   BxoVal proset = BxoObject::set_of_predefined_objects();
   proset.scan_dump(*this);
+  int nbscan = 0;
   while (!_du_scanque.empty())
     {
       auto scf = _du_scanque.front();
       BXO_ASSERT(scf, "empty object to scan");
       _du_scanque.pop_front();
       scf->scan_content_dump(*this);
+      nbscan++;
     }
   while (!_du_todoafterscan.empty())
     {
@@ -456,6 +460,7 @@ BxoDumper::scan_all(void)
       _du_todoafterscan.pop_front();
       tdf.first(*this,tdf.second);
     }
+  BXO_ASSERT(nbscan>0, "BxoDumper::scan_all bad nbscan:" << nbscan);
 } // end of BxoDumper::scan_all
 
 void
@@ -591,6 +596,11 @@ BxoDumper::full_dump(void)
     }
   scan_all();
   emit_all();
+  long nbobj = _du_objset.size();
+  int nbfil = 0;
+  _du_objset.clear();
+  delete _du_queryinsobj;
+  _du_queryinsobj = nullptr;
   _du_sqldb->close();
   while (!_du_outfilset.empty())
     {
@@ -598,13 +608,19 @@ BxoDumper::full_dump(void)
       {
         outpath = *_du_outfilset.begin();
       }
+      _du_outfilset.erase(outpath);
+      nbfil++;
       rename_temporary(outpath);
     }
-  delete _du_queryinsobj;
-  _du_queryinsobj = nullptr;
   delete _du_sqldb;
   _du_sqldb = nullptr;
-#warning BxoDumper::full_dump unimplemented
+  double elaptim = bxo_elapsed_real_time() - _du_startelapsedtime;
+  double cputim = bxo_process_cpu_time () - _du_startprocesstime;
+  printf("\n"
+         "Dumped %ld objects & %d files into %s/ in %.3f elapsed, %.4f cpu seconds (%.3f elapsed, %.3f cpu µs/obj)\n",
+         nbobj, nbfil, _du_dirname.c_str(),
+         elaptim, cputim, 1.0e6*(elaptim/nbobj), 1.0e6*(cputim/nbobj));
+  fflush(nullptr);
 } // end BxoDumper::full_dump
 
 bool
