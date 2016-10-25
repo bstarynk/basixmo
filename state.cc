@@ -232,6 +232,8 @@ BxoLoader::name_the_predefined(const std::string&nam, const std::string&idstr)
       BXO_BACKTRACELOG("name_the_predefined dont find idstr=" << idstr);
       throw  std::runtime_error("BxoLoader::name_the_predefined missing");
     }
+  if (pob->name() == nam) // already named
+    return pob;
   if (!pob->register_named(nam))
     {
       BXO_BACKTRACELOG("name_the_predefined for idstr=" << idstr
