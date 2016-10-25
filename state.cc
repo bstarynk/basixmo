@@ -444,6 +444,7 @@ BxoDumper::scan_all(void)
   _du_objset.clear();
   _du_state = DuScan;
   BxoVal proset = BxoObject::set_of_predefined_objects();
+  BXO_BACKTRACELOG("scan_all proset=" << proset);
   proset.scan_dump(*this);
   int nbscan = 0;
   while (!_du_scanque.empty())

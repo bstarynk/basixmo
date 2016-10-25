@@ -1352,17 +1352,26 @@ BxoVTuple::BxoVTuple(const BxoTuple& tup)
   :  BxoVal(TagTuple {},&tup) {}
 
 
-inline std::ostream& operator << (std::ostream& os, const std::shared_ptr<BxoObject> pob)
+inline std::ostream& operator << (std::ostream& os,  std::shared_ptr<BxoObject> pob)
 {
-  if (pob) os << pob->strid();
-  else os << "~";
+  if (pob)
+    os << pob->strid();
+  else
+    os << "~";
   return os;
 };
 inline std::ostream& operator << (std::ostream& os, const BxoObject* pob)
 {
-  if (pob) os << pob->strid();
-  else os << "~";
+  if (pob)
+    os << pob->strid();
+  else
+    os << "~";
   return os;
 };
 
+inline std::ostream& operator << (std::ostream& os, const BxoVal&v)
+{
+  v.out(os);
+  return os;
+}
 #endif /*BASIXMO_HEADER*/

@@ -190,7 +190,10 @@ BxoObject::set_of_predefined_objects ()
       BXO_ASSERT(obp, "nil predefined pointer");
       pset.insert(obp);
     }
-  return BxoVSet(pset);
+  auto res= BxoVSet(pset);
+  BXO_BACKTRACELOG("set_of_predefined_objects=" << res
+		   << " with comment=" << BXO_VARPREDEF(comment));
+  return res;
 } // end of BxoObject::set_of_predefined_objects
 
 BxoObject::~BxoObject()
