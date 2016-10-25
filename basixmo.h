@@ -149,12 +149,12 @@ extern "C" void bxo_backtracestr_at (const char*fil, int lin, const std::string&
   BXO_BACKTRACELOG_AT_BIS(__FILE__,__LINE__,Log)
 
 extern "C" void bxo_abort(void) __attribute__((noreturn));
-#ifdef NDEBUG
+#ifndef NDEBUG
 #define BXO_ASSERT_AT(Fil,Lin,Prop,Log) do {    \
  if (BXO_UNLIKELY(!(Prop))) {                   \
    BXO_BACKTRACELOG_AT(Fil,Lin,                 \
            "**BXO_ASSERT FAILED** " #Prop ":"   \
-           " @ " __FUNCTION__                   \
+		       " @ " <<__FUNCTION__	\
            << Log);                             \
    bxo_abort();                                 \
  }                                              \

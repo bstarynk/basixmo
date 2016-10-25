@@ -523,9 +523,11 @@ BxoDumper::emit_all()
   _du_queryinsobj = new QSqlQuery(*_du_sqldb);
   _du_queryinsobj->prepare(insert_object_sql);
   // emit all dumpable objects
+  BXO_ASSERT(!_du_objset.empty(), "empty _du_objset");
   for (BxoObject*pob : _du_objset)
     {
       BXO_ASSERT(pob != nullptr, "null pob");
+      std::clog << "BxoDumper::emit_all pob:" << pob->strid() << std::endl;
       auto modob = emit_object_row_module(pob);
       auto obnam = pob->name();
       if (!obnam.empty())
@@ -645,6 +647,7 @@ BxoDumper::full_dump(void)
       throw std::runtime_error("BxoDumper::full_dump open failutr");
     }
   scan_all();
+  BXO_ASSERT(!_du_objset.empty(), "empty _du_objset");
   initialize_data_schema();
   emit_all();
   long nbobj = _du_objset.size();

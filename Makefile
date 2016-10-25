@@ -93,3 +93,5 @@ indent:
 	done
 
 
+%.ii: %.cc basixmo.h $(GENERATED_HEADERS)
+	$(COMPILE.cc) -C -E $< -o -  | sed s:^#://#:g > $@
