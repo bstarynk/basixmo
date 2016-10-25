@@ -420,3 +420,14 @@ BxoVal::scan_dump(BxoDumper&du) const
       break;
     }
 } // end BxoVal::scan_dump
+
+
+
+#warning we need a BxoUtf8Out class
+
+/// only for debugging
+void
+BxoVal::out(std::ostream&os) const
+{
+#warning BxoVal::out unimplemented
+} // end of BxoVal::out

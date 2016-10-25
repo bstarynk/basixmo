@@ -371,6 +371,7 @@ public:
   BxoJson to_json(BxoDumper&) const;
   void scan_dump(BxoDumper&) const;
   static BxoVal from_json(BxoLoader&, const BxoJson&);
+  void out(std::ostream&os) const;
 };        // end class BxoVal
 
 
