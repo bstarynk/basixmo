@@ -48,6 +48,8 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 
+#include <utf8.h>
+
 #include "json/json.h"
 
 // common prefix bxo
@@ -154,7 +156,7 @@ extern "C" void bxo_abort(void) __attribute__((noreturn));
  if (BXO_UNLIKELY(!(Prop))) {                   \
    BXO_BACKTRACELOG_AT(Fil,Lin,                 \
            "**BXO_ASSERT FAILED** " #Prop ":"   \
-		       " @ " <<__FUNCTION__	\
+           " @ " <<__FUNCTION__ \
            << Log);                             \
    bxo_abort();                                 \
  }                                              \
@@ -185,6 +187,35 @@ public:
   };
 };
 inline std::ostream& operator << (std::ostream& os, const BxoOut& bo)
+{
+  bo.out(os);
+  return os;
+};
+
+class BxoUtf8Out
+{
+  std::string _str;
+  unsigned _flags;
+public:
+  BxoUtf8Out(const std::string&str, unsigned flags=0) : _str(str), _flags(flags)
+  {
+    if (!utf8::is_valid(str.begin(), str.end()))
+      {
+        BXO_BACKTRACELOG("BxoUtf8Out invalid str=" << str);
+        throw std::runtime_error("BxoUtf8Out invalid string");
+      }
+  };
+  ~BxoUtf8Out()
+  {
+    _str.clear();
+    _flags=0;
+  };
+  BxoUtf8Out(const BxoUtf8Out&) = default;
+  BxoUtf8Out(BxoUtf8Out&&) = default;
+  void out(std::ostream&os) const;
+};        // end class BxoUtf8Out
+
+inline std::ostream& operator << (std::ostream& os, const BxoUtf8Out& bo)
 {
   bo.out(os);
   return os;
@@ -590,6 +621,14 @@ public:
   {
     return _len;
   };
+  void out(std::ostream&os) const
+  {
+    for (unsigned ix=0; ix<_len; ix++)
+      {
+        if (ix>0) os << ' ';
+        os << _seq[ix];
+      }
+  }
   inline void sequence_scan_dump(BxoDumper&) const;
 };        // end class BxoSequence
 
@@ -1313,5 +1352,17 @@ BxoVTuple::BxoVTuple(const BxoTuple& tup)
   :  BxoVal(TagTuple {},&tup) {}
 
 
+inline std::ostream& operator << (std::ostream& os, const std::shared_ptr<BxoObject> pob)
+{
+  if (pob) os << pob->strid();
+  else os << "~";
+  return os;
+};
+inline std::ostream& operator << (std::ostream& os, const BxoObject* pob)
+{
+  if (pob) os << pob->strid();
+  else os << "~";
+  return os;
+};
 
 #endif /*BASIXMO_HEADER*/
