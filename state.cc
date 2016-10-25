@@ -546,24 +546,32 @@ BxoDumper::full_dump(void)
     }
   {
     auto timestampath = output_path(std::string("_BxoDumpTimeStamp"));
-    FILE* filts = fopen(timestampath.c_str(), "w");
-    if (!filts)
+    BXO_ASSERT(timestampath[0] == '/', "bad timestampath: " << timestampath);
+    FILE* filtims = fopen(timestampath.c_str(), "w");
+    if (!filtims)
       {
-        BXO_BACKTRACELOG("full_dump failed to open timestamp " << timestampath
+        BXO_BACKTRACELOG("full_dump failed to fopen timestamp " << timestampath
                          << " : " << strerror(errno));
         throw std::runtime_error("BxoDumper::full_dump timestamp fopen failed");
       }
     time_t nowt = time(nullptr);
     struct tm nowtm = {};
     localtime_r(&nowt, &nowtm);
-    char timbuf[80];
-    memset (timbuf, 0, sizeof(timbuf));
-    strftime(timbuf, sizeof(timbuf), "%c %Z", &nowtm);
-    fprintf(filts, "Bxo-dump: %s\n", timbuf);
-    fprintf(filts, "Bxo-timestamp: %s\n", basixmo_timestamp);
-    fprintf(filts, "Bxo-dir: %s\n", basixmo_directory);
-    fprintf(filts, "Bxo-lastgitcommit: %s\n", basixmo_lastgitcommit);
-    fclose(filts);
+    char nowtimbuf[72];
+    memset (nowtimbuf, 0, sizeof(nowtimbuf));
+    strftime(nowtimbuf, sizeof(nowtimbuf), "%c", &nowtm);
+    fprintf(filtims, "Bxo-dump: %s\n", nowtimbuf);
+    fprintf(filtims, "Bxo-timestamp: %s\n", basixmo_timestamp);
+    fflush(filtims);
+    fprintf(filtims, "Bxo-dir: %s\n", basixmo_directory);
+    fprintf(filtims, "Bxo-lastgitcommit: %s\n", basixmo_lastgitcommit);
+    if (fclose(filtims))
+      {
+        BXO_BACKTRACELOG("full_dump failed to fclose timestamp " << timestampath
+                         << " : " << strerror(errno));
+        throw std::runtime_error("BxoDumper::full_dump timestamp fclose failed");
+      };
+    filtims = nullptr;
   }
   BXO_ASSERT(_du_sqldb == nullptr, "got an sqldb");
   auto sqlitepath = output_path(std::string(basixmo_statebase)+".sqlite");

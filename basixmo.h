@@ -746,16 +746,16 @@ BxoVal::BxoVal(const BxoVal&v)
       _int = v._int;
       break;
     case BxoVKind::StringK:
-      new(&_str) std::shared_ptr<BxoString>(new BxoString(*v._str));
+      new(&_str) std::shared_ptr<const BxoString>(v._str);
       break;
     case BxoVKind::ObjectK:
       new(&_obj) std::shared_ptr<BxoObject>(v._obj);
       break;
     case BxoVKind::SetK:
-      new(&_set) std::shared_ptr<BxoSet>(new BxoSet(*v._set));
+      new(&_set) std::shared_ptr<const BxoSet>(v._set);
       break;
     case BxoVKind::TupleK:
-      new(&_tup) std::shared_ptr<BxoTuple>(new BxoTuple(*v._tup));
+      new(&_tup) std::shared_ptr<const BxoTuple>(v._tup);
       break;
     }
 } // end BxoVal::BxoVal(const BxoVal&v)
@@ -767,6 +767,7 @@ BxoVal& BxoVal::operator =(const BxoVal&s)
   auto sk = s._kind;
   if (tk == sk)
     {
+      if (this == &s) return *this;
       switch (s._kind)
         {
         case BxoVKind::NoneK:
@@ -799,6 +800,7 @@ BxoVal& BxoVal::operator =(const BxoVal&s)
 BxoVal::BxoVal(BxoVal&&v)
   : _kind(v._kind)
 {
+  _ptr = nullptr;
   switch (v._kind)
     {
     case BxoVKind::NoneK:
@@ -859,11 +861,13 @@ BxoVal& BxoVal::operator =(BxoVal&&s)
     }
   if (tk != BxoVKind::NoneK)
     clear();
+  _ptr = nullptr;
   new(this) BxoVal(s);
   return *this;
 } // end BxoVal::operator =(BxoVal&&)
 
 
+/// see also http://stackoverflow.com/a/28613483/841108
 void BxoVal::clear()
 {
   auto k = _kind;
@@ -876,15 +880,15 @@ void BxoVal::clear()
       _int = 0;
       break;
     case BxoVKind::StringK:
-      _str.reset();
+      _str.~shared_ptr<const BxoString>();;
       break;
     case BxoVKind::ObjectK:
-      _obj.reset();
+      _obj.~shared_ptr<BxoObject>();
       break;
     case BxoVKind::SetK:
-      _set.reset();
+      _set.~shared_ptr<const BxoSet>();
     case BxoVKind::TupleK:
-      _tup.reset();
+      _tup.~shared_ptr<const BxoTuple>();
       break;
     }
   _ptr = nullptr;
