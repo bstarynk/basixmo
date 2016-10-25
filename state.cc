@@ -122,7 +122,7 @@ BxoLoader::load()
       BXO_BACKTRACELOG("load: missing QSQLITE driver");
       throw std::runtime_error("BxoLoader::load missing QSQLITE");
     }
-  _ld_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE"));
+  _ld_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE","bxoloader"));
   QString sqlitepath((_ld_dirname+"/"+basixmo_statebase+".sqlite").c_str());
   QString sqlpath((_ld_dirname+"/"+basixmo_statebase+".sql").c_str());
   if (!QFileInfo::exists(sqlitepath) || !QFileInfo::exists(sqlpath))
@@ -155,6 +155,8 @@ BxoLoader::load()
   _ld_sqldb->close();
   int nbobj = _ld_idtoobjmap.size();
   _ld_idtoobjmap.clear();
+  delete _ld_sqldb;
+  QSqlDatabase::removeDatabase("bxoloader");
   double elaptim = bxo_elapsed_real_time() - _ld_startelapsedtime;
   double cputim = bxo_process_cpu_time () - _ld_startprocesstime;
   printf("\n"
@@ -565,7 +567,8 @@ BxoDumper::full_dump(void)
   }
   BXO_ASSERT(_du_sqldb == nullptr, "got an sqldb");
   auto sqlitepath = output_path(std::string(basixmo_statebase)+".sqlite");
-  _du_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE"));
+  BXO_ASSERT(sqlitepath[0] == '/', "bad sqlitepath=" << sqlitepath);
+  _du_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "bxodumper"));
   _du_sqldb->setDatabaseName(QString(sqlitepath.c_str()));
   if (!_du_sqldb->open())
     {
@@ -584,6 +587,7 @@ BxoDumper::full_dump(void)
       }
       rename_temporary(outpath);
     }
+  delete _du_sqldb;
 #warning BxoDumper::full_dump unimplemented
 } // end BxoDumper::full_dump
 
@@ -622,28 +626,30 @@ BxoDumper::same_file_content(const char*path1, const char*path2)
   return samefilecont;
 } // end BxoDumper::same_file_content
 
+
 void
 BxoDumper::rename_temporary(const std::string&filpath)
 {
-  std::string tempath = filpath+_du_tempsuffix;
-  std::string backupath = filpath+"~";
-  if (same_file_content(tempath.c_str(), filpath.c_str()))
+  std::string fullpath = _du_dirname + "/" + filpath;
+  std::string tempath = _du_dirname + "/" +filpath+_du_tempsuffix;
+  std::string backupath = _du_dirname + "/" +filpath+"~";
+  if (same_file_content(tempath.c_str(), fullpath.c_str()))
     {
       if (::remove(tempath.c_str()))
         {
           BXO_BACKTRACELOG("rename_temporary: failed to remove " << tempath
-                           << " of same content as " << filpath
+                           << " of same content as " << fullpath
                            << ":" << strerror(errno));
           throw std::runtime_error("BxoDumper::rename_temporary failed to remove temporary");
         };
     }
   else
     {
-      (void) ::rename(filpath.c_str(), backupath.c_str());
-      if (::rename(tempath.c_str(), filpath.c_str()))
+      (void) ::rename(fullpath.c_str(), backupath.c_str());
+      if (::rename(tempath.c_str(), fullpath.c_str()))
         {
           BXO_BACKTRACELOG("rename_temporary: failed to rename "
-                           << tempath << " -> " << filpath
+                           << tempath << " -> " << fullpath
                            << " : " << strerror(errno));
           throw std::runtime_error("BxoDumper::rename_temporary failed to rename");
         }
