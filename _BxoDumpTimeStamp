@@ -1,4 +1,0 @@
-Bxo-dump: Wed 26 Oct 2016 08:41:16 PM CEST
-Bxo-timestamp: Wed 26 Oct 2016 06:49:05 PM CEST
-Bxo-dir: /ssdhome/basile/basixmo
-Bxo-lastgitcommit: cd001b1584c6 BxoObject::set_of_predefined_objects is working but comment->name() is not yet working
