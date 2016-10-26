@@ -145,6 +145,7 @@ BxoLoader::load()
                        << " failed to open: " << _ld_sqldb->lastError().text().toStdString());
       throw std::runtime_error("BxoLoader::load open failure");
     }
+  bind_predefined();
   create_objects();
   set_globals ();
   name_objects ();
@@ -168,6 +169,15 @@ BxoLoader::load()
 } // end of BxoLoader::load
 
 void
+BxoLoader::bind_predefined(void)
+{
+#define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash)            \
+    _ld_idtoobjmap.insert({BXO_VARPREDEF(Name)->strid(),        \
+                           BXO_VARPREDEF(Name)});
+#include "_bxo_predef.h"
+} // end BxoLoader::bind_predefined
+
+void
 BxoLoader::create_objects(void)
 {
   QSqlQuery query(*_ld_sqldb);
@@ -188,12 +198,12 @@ BxoLoader::create_objects(void)
 void
 BxoLoader::set_globals(void)
 {
-#define BXO_HAS_GLOBAL(Nam,Idstr,Hid,Loid,Hash) do {  \
-    if (!BXO_VARGLOBAL(Nam))        \
-      BXO_VARGLOBAL(Nam) =        \
-  BxoObject::load_objref(*this,#Idstr);   \
-    BXO_ASSERT(BXO_VARGLOBAL(Nam)->hash() == Hash,  \
-         "bad hash for " << #Nam);    \
+#define BXO_HAS_GLOBAL(Nam,Idstr,Hid,Loid,Hash) do {    \
+    if (!BXO_VARGLOBAL(Nam))                            \
+      BXO_VARGLOBAL(Nam) =                              \
+  BxoObject::load_objref(*this,#Idstr);                 \
+    BXO_ASSERT(BXO_VARGLOBAL(Nam)->hash() == Hash,      \
+         "bad hash for " << #Nam);                      \
 } while(0)
 #include "_bxo_global.h"
 } // end of BxoLoader::set_globals

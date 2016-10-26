@@ -560,6 +560,7 @@ class BxoLoader
   double _ld_startelapsedtime;
   double _ld_startprocesstime;
   std::unordered_map<std::string,std::shared_ptr<BxoObject>> _ld_idtoobjmap;
+  void bind_predefined(void);
   void create_objects(void);
   void set_globals(void);
   void name_objects(void);
@@ -1042,6 +1043,7 @@ public:
              _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
     register_in_bucket(this);
+    BXO_VERBOSELOG("BxoObject Predef strid:"<< strid() << " @" << (void*)this);
   };
   BxoObject(PseudoTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
     : std::enable_shared_from_this<BxoObject>(),
@@ -1049,6 +1051,7 @@ public:
       _classob {nullptr},
              _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
+    BXO_VERBOSELOG("BxoObject Pseudo strid:"<< strid() << " @" << (void*)this);
   };
   BxoObject(LoadedTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
     : std::enable_shared_from_this<BxoObject>(),
@@ -1057,6 +1060,7 @@ public:
              _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
     register_in_bucket(this);
+    BXO_VERBOSELOG("BxoObject Loaded strid:"<< strid() << " @" << (void*)this);
   };
   static void initialize_predefined_objects (void);
   static BxoVal set_of_predefined_objects (void);

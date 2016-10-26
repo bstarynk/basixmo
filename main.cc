@@ -258,9 +258,14 @@ main (int argc_main, char **argv_main)
         BXO_ASSERT(ob->name() == ns, "for ns=" << ns << " ob=" << ob << " with bad name " << ob->name());
       }
   }) << ")");
-  BXO_VERBOSELOG("comment is " << BXO_VARPREDEF(comment));
+  BxoObject* commpob = BXO_VARPREDEF(comment).get();
+  BXO_VERBOSELOG("comment is " << BXO_VARPREDEF(comment)
+                 << " @" << (void*)(BXO_VARPREDEF(comment).get()));
   BXO_VERBOSELOG("comment strid=" << BXO_VARPREDEF(comment)->strid());
+  BXO_VERBOSELOG("commpob @" << (void*)commpob << ":" << commpob <<" strid=" << commpob->strid());
   BXO_VERBOSELOG("comment name=" << BXO_VARPREDEF(comment)->name());
+  BXO_VERBOSELOG("commpob name=" << commpob->name());
+  BXO_VERBOSELOG("comment @" << (void*)(BXO_VARPREDEF(comment).get()) << " strid=" << BXO_VARPREDEF(comment)->strid());
   BXO_VERBOSELOG("named comment=" << BxoObject::find_named_objref("comment"));
   BXO_VERBOSELOG("comment singleton is " << BxoVSet(BXO_VARPREDEF(comment)));
   BXO_VERBOSELOG("comment,payload_hashset pair is "
