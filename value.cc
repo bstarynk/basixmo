@@ -503,7 +503,7 @@ BxoVal::out(std::ostream&os) const
       os << '"'<< BxoUtf8Out(_str->string()) << '"';
       break;
     case BxoVKind::ObjectK:
-      os << _obj->strid();
+      os << _obj->pname();
       break;
     case BxoVKind::SetK:
     {

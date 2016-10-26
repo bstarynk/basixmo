@@ -21,7 +21,7 @@ std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> BxoObject::_p
 
 std::unordered_set<BxoObject*,BxoHashObjPtr> BxoObject::_bucketarr_[BXO_HID_BUCKETMAX];
 std::map<std::string,std::shared_ptr<BxoObject>> BxoObject::_namedict_;
-std::unordered_map<const BxoObject*,std::string> BxoObject::_namemap_;
+std::unordered_map<BxoObject*,std::string> BxoObject::_namemap_;
 
 // we choose base 60, because with a 0-9 decimal digit then 13 extended
 // digits in base 60 we can express a 80-bit number.  Notice that
@@ -184,14 +184,15 @@ void BxoObject::change_space(BxoSpace newsp)
 BxoVal
 BxoObject::set_of_predefined_objects ()
 {
-  std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr> pset;
+  std::vector<BxoObject*> pvec;
+  pvec.reserve(_predef_set_.size()+1);
   for (auto obp : _predef_set_)
     {
       BXO_ASSERT(obp, "nil predefined pointer");
-      pset.insert(obp);
-      BXO_VERBOSELOG("predefined obp" << obp);
+      pvec.push_back(obp.get());
+      BXO_VERBOSELOG("predefined obp=" << obp);
     }
-  auto res= BxoVSet(pset);
+  auto res= BxoVSet(pvec);
   BXO_VERBOSELOG("set_of_predefined_objects=" << res
                  << " with comment=" << BXO_VARPREDEF(comment));
   return res;
@@ -346,10 +347,21 @@ BxoObject::register_named(const std::string&namstr)
     return false;
   if (_namedict_.find(namstr) != _namedict_.end())
     return false;
+  BXO_ASSERT(_namedict_.size() == _namemap_.size(),
+             "different sizes namedict!" << _namedict_.size()
+             << " namemap!" << _namemap_.size());
   if (_namemap_.find(this) != _namemap_.end())
     return false;
-  _namedict_[namstr] = shared_from_this();
-  _namemap_[this] = namstr;
+  BXO_VERBOSELOG("this=" << (void*)this << ":" << strid() << " namstr='" << namstr << "'");
+  _namedict_.insert({namstr,shared_from_this()});
+  _namemap_.insert({this,namstr});
+  BXO_ASSERT(_namedict_.size() == _namemap_.size(),
+             "different sizes namedict!" << _namedict_.size()
+             << " namemap!" << _namemap_.size());
+  BXO_ASSERT(({auto it =_namemap_.find(this); it != _namemap_.end() && it->second == namstr;}),
+             "corrupted namemap");
+  BXO_ASSERT(({auto it = _namedict_.find(namstr); it != _namedict_.end() && it->second.get() == this;}),
+             "corrupted namedict");
   return true;
 } // end BxoObject::register_named
 

@@ -156,8 +156,9 @@ extern "C" void bxo_abort(void) __attribute__((noreturn));
  if (BXO_UNLIKELY(!(Prop))) {                   \
    BXO_BACKTRACELOG_AT(Fil,Lin,                 \
            "**BXO_ASSERT FAILED** " #Prop ":"   \
-           " @ " <<__FUNCTION__ \
-           << Log);                             \
+           " @ " <<__PRETTY_FUNCTION__          \
+                       <<  std::endl            \
+                       << "::" << Log);         \
    bxo_abort();                                 \
  }                                              \
 } while(0)
@@ -604,7 +605,11 @@ protected:
     : _hash(h), _len(len), _seq(new std::shared_ptr<BxoObject>[len])
   {
     for (unsigned ix=0; ix<len; ix++)
-      _seq[ix] = seq[ix];
+      {
+        auto comp = seq[ix];
+        BXO_ASSERT(comp, "nil comp#" << ix);
+        _seq[ix] = comp;
+      }
   }
   bool same_sequence(const BxoSequence&r) const
   {
@@ -637,7 +642,9 @@ public:
     for (unsigned ix=0; ix<_len; ix++)
       {
         if (ix>0) os << ' ';
-        os << _seq[ix];
+        auto comp = _seq[ix];
+        BXO_ASSERT (comp, "no comp ix#"<< ix);
+        os << comp;
       }
   }
   inline void sequence_scan_dump(BxoDumper&) const;
@@ -655,9 +662,9 @@ class BxoSet : public BxoSequence
     return h?h:(((ln*449)&0xffff)+23);
   }
   static BxoSet the_empty_set;
-  static const BxoSet*make_set(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>&bs);
-  static const BxoSet*make_set(const std::vector<std::shared_ptr<BxoObject>>&vec);
-  static const BxoSet*make_set(const std::vector<BxoObject*>&vec);
+  static const BxoSet*make_set(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>& bs);
+  static const BxoSet*make_set(const std::vector<std::shared_ptr<BxoObject>> &vec);
+  static const BxoSet*make_set(const std::vector<BxoObject*> &vec);
   BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObject> * seq)
     : BxoSequence(h, len, seq) {};
 public:
@@ -1015,7 +1022,7 @@ class BxoObject: public std::enable_shared_from_this<BxoObject>
   static std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> _predef_set_;
   static std::unordered_set<BxoObject*,BxoHashObjPtr> _bucketarr_[BXO_HID_BUCKETMAX];
   static std::map<std::string,std::shared_ptr<BxoObject>> _namedict_;
-  static std::unordered_map<const BxoObject*,std::string> _namemap_;
+  static std::unordered_map<BxoObject*,std::string> _namemap_;
   static inline void register_in_bucket(BxoObject*pob)
   {
     _bucketarr_[hi_id_bucketnum(pob->_hid)].insert(pob);
@@ -1128,7 +1135,7 @@ public:
   }
   std::string name(void) const
   {
-    auto it = _namemap_.find(this);
+    auto it = _namemap_.find(const_cast<BxoObject*>(this));
     if (it != _namemap_.end())
       return it->second;
     return "";
@@ -1351,7 +1358,7 @@ BxoTuple::combine_hash(BxoHash_t h, const BxoObject&ob)
 BxoVSet::BxoVSet(const BxoSet&bs)
   : BxoVal(TagSet {},&bs) {}
 
-BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>&s)
+BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>& s)
   : BxoVal(TagSet {},BxoSet::make_set(s)) {}
 
 BxoVSet::BxoVSet(const std::vector<std::shared_ptr<BxoObject>>&vs)

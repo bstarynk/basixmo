@@ -17,6 +17,7 @@
 **/
 
 #include "basixmo.h"
+#include <cxxabi.h>
 #include <QProcess>
 #include <QCoreApplication>
 #include <QApplication>
@@ -78,12 +79,23 @@ bxo_bt_callback (void *data, uintptr_t pc, const char *filename, int lineno,
     }
   ++*pcount;
 
-
+  int demstatus = -1;
+  char* demfun = abi::__cxa_demangle(function, nullptr, nullptr, &demstatus);
+  if (demstatus != 0)
+    {
+      if (demfun)
+        free(demfun);
+      demfun = nullptr;
+    };
   fprintf (stderr, "Basixmo[0x%lx] %s\n\t%s:%d\n",
            (unsigned long) pc,
-           function == NULL ? "???" : function,
+           demfun?demfun:(function == NULL ? "???" : function),
            filename == NULL ? "???" : filename, lineno);
-
+  if (demfun)
+    {
+      free(demfun);
+      demfun = nullptr;
+    }
   return 0;
 }                               /* end bxo_bt_callback */
 
@@ -241,9 +253,15 @@ main (int argc_main, char **argv_main)
     auto an = BxoObject::all_names();
     for (std::string ns: an)
       {
-        out << " " << ns << ":" << BxoObject::find_named_objptr(ns)->strid();
+        auto ob = BxoObject::find_named_objptr(ns);
+        out << " " << ns << ":" << ob->strid();
+        BXO_ASSERT(ob->name() == ns, "for ns=" << ns << " ob=" << ob << " with bad name " << ob->name());
       }
   }) << ")");
+  BXO_VERBOSELOG("comment is " << BXO_VARPREDEF(comment));
+  BXO_VERBOSELOG("comment strid=" << BXO_VARPREDEF(comment)->strid());
+  BXO_VERBOSELOG("comment name=" << BXO_VARPREDEF(comment)->name());
+  BXO_VERBOSELOG("named comment=" << BxoObject::find_named_objref("comment"));
   BXO_VERBOSELOG("comment singleton is " << BxoVSet(BXO_VARPREDEF(comment)));
   BXO_VERBOSELOG("comment,payload_hashset pair is "
                  << BxoVSet(BXO_VARPREDEF(comment),BXO_VARPREDEF(payload_hashset)));
