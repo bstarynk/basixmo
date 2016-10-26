@@ -460,10 +460,11 @@ BxoDumper::scan_all(void)
   while (!_du_scanque.empty())
     {
       auto scf = _du_scanque.front();
-      BXO_ASSERT(scf, "empty object to scan");
+      nbscan++;
+      BXO_ASSERT(scf, "empty object to scan nbscan=" << nbscan);
+      BXO_VERBOSELOG("nbscan#" << nbscan << " scf=" << scf << ":" << scf->strid());
       _du_scanque.pop_front();
       scf->scan_content_dump(*this);
-      nbscan++;
     }
   while (!_du_todoafterscan.empty())
     {

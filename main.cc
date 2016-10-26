@@ -22,6 +22,7 @@
 #include <QCoreApplication>
 #include <QApplication>
 #include <QCommandLineParser>
+#include "sqlite3.h"
 
 thread_local BxoRandom BxoRandom::_rand_thr_;
 bool bxo_verboseflag;
@@ -182,6 +183,14 @@ static void show_size_bxo(void)
 
 
 
+
+// for SQLITE_CONFIG_LOG
+static void
+bxo_sqlite_errorlog (void *pdata BXO_UNUSED, int errcode, const char *msg)
+{
+  BXO_BACKTRACELOG("Sqlite Error errcode="<< errcode << " msg=" << msg);
+}
+
 int
 main (int argc_main, char **argv_main)
 {
@@ -195,6 +204,7 @@ main (int argc_main, char **argv_main)
       if (!strcmp("-V", argv_main[ix]) || !strcmp("--verbose",argv_main[ix]))
         bxo_verboseflag = true;
     }
+  sqlite3_config (SQLITE_CONFIG_LOG, bxo_sqlite_errorlog, NULL);
   BxoObject::initialize_predefined_objects();
   QCoreApplication* app = nogui?new QCoreApplication(argc_main, argv_main):new QApplication(argc_main, argv_main);
   app->setApplicationName("Basixmo");
