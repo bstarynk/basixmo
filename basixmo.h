@@ -173,6 +173,17 @@ extern "C" void bxo_abort(void) __attribute__((noreturn));
   BXO_ASSERT_AT_BIS(__FILE__,__LINE__,Prop,Log)
 
 
+extern "C" bool bxo_verboseflag;
+#define BXO_VERBOSELOG_AT(Fil,Lin,Log) do {     \
+  if (bxo_verboseflag)                          \
+    std::clog << "*BXO @" << Fil << ":" << Lin  \
+              << " /" << __FUNCTION__ << ": " \
+              << Log << std::endl;              \
+ } while(0)
+#define BXO_VERBOSELOG_AT_BIS(Fil,Lin,Log) \
+  BXO_VERBOSELOG_AT(Fil,Lin,Log)
+#define BXO_VERBOSELOG(Log) \
+  BXO_VERBOSELOG_AT_BIS(__FILE__,__LINE__,Log)
 
 //////////////// to ease debugging
 class BxoOut
@@ -1355,7 +1366,7 @@ BxoVTuple::BxoVTuple(const BxoTuple& tup)
 inline std::ostream& operator << (std::ostream& os,  std::shared_ptr<BxoObject> pob)
 {
   if (pob)
-    os << pob->strid();
+    os << pob->pname();
   else
     os << "~";
   return os;
@@ -1363,7 +1374,7 @@ inline std::ostream& operator << (std::ostream& os,  std::shared_ptr<BxoObject> 
 inline std::ostream& operator << (std::ostream& os, const BxoObject* pob)
 {
   if (pob)
-    os << pob->strid();
+    os << pob->pname();
   else
     os << "~";
   return os;

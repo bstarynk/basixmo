@@ -23,6 +23,8 @@
 #include <QCommandLineParser>
 
 thread_local BxoRandom BxoRandom::_rand_thr_;
+bool bxo_verboseflag;
+
 void bxo_abort(void)
 {
   fflush(NULL);
@@ -172,12 +174,16 @@ int
 main (int argc_main, char **argv_main)
 {
   clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
-  BxoObject::initialize_predefined_objects();
   check_updated_binary_bxo();
   bool nogui = false;
   for (int ix=1; ix<argc_main; ix++)
-    if (!strcmp("--no-gui", argv_main[ix]) || !strcmp("-N", argv_main[ix]) || !strcmp("--batch", argv_main[ix]))
-      nogui = true;
+    {
+      if (!strcmp("--no-gui", argv_main[ix]) || !strcmp("-N", argv_main[ix]) || !strcmp("--batch", argv_main[ix]))
+        nogui = true;
+      if (!strcmp("-V", argv_main[ix]) || !strcmp("--verbose",argv_main[ix]))
+        bxo_verboseflag = true;
+    }
+  BxoObject::initialize_predefined_objects();
   QCoreApplication* app = nogui?new QCoreApplication(argc_main, argv_main):new QApplication(argc_main, argv_main);
   app->setApplicationName("Basixmo");
   app->setApplicationVersion(basixmo_lastgitcommit);
@@ -193,17 +199,22 @@ main (int argc_main, char **argv_main)
                                    "directory");
   QCommandLineOption infooption("info",
                                 "give various info");
+  QCommandLineOption verboseoption(QStringList() <<"V" << "verbose",
+                                   "give verbose debug output");
   cmdlinparser.addHelpOption();
   cmdlinparser.addVersionOption();
   cmdlinparser.addOption(noguioption);
   cmdlinparser.addOption(dumpdiroption);
   cmdlinparser.addOption(loaddiroption);
   cmdlinparser.addOption(infooption);
+  cmdlinparser.addOption(verboseoption);
   cmdlinparser.process(*app);
   if (cmdlinparser.isSet(infooption))
     {
       show_size_bxo();
     }
+  if (cmdlinparser.isSet(verboseoption))
+    bxo_verboseflag = true;
   if (cmdlinparser.isSet(dumpdiroption))
     {
       auto dumpdirstr = cmdlinparser.value(dumpdiroption).toStdString();
@@ -214,14 +225,20 @@ main (int argc_main, char **argv_main)
     }
   if (cmdlinparser.isSet(loaddiroption))
     {
-      BxoLoader loader {cmdlinparser.value(loaddiroption).toStdString()};
+      auto loaddirstr = cmdlinparser.value(loaddiroption).toStdString();
+      BXO_VERBOSELOG("before loading from " << loaddirstr);
+      BxoLoader loader {loaddirstr};
       loader.load();
     }
   else
     {
+      BXO_VERBOSELOG("before loading");
       BxoLoader loader;
       loader.load();
     }
+  BXO_VERBOSELOG("comment singleton is " << BxoVSet(BXO_VARPREDEF(comment)));
+  BXO_VERBOSELOG("comment,payload_hashset pair is "
+                 << BxoVSet(BXO_VARPREDEF(comment),BXO_VARPREDEF(payload_hashset)));
   if (!nogui)
     app->exec();
   if (!BxoDumper::default_dump_dir().empty())

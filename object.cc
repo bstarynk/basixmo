@@ -191,8 +191,8 @@ BxoObject::set_of_predefined_objects ()
       pset.insert(obp);
     }
   auto res= BxoVSet(pset);
-  BXO_BACKTRACELOG("set_of_predefined_objects=" << res
-		   << " with comment=" << BXO_VARPREDEF(comment));
+  BXO_VERBOSELOG("set_of_predefined_objects=" << res
+                 << " with comment=" << BXO_VARPREDEF(comment));
   return res;
 } // end of BxoObject::set_of_predefined_objects
 
