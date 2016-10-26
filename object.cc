@@ -189,12 +189,26 @@ BxoObject::set_of_predefined_objects ()
     {
       BXO_ASSERT(obp, "nil predefined pointer");
       pset.insert(obp);
+      BXO_VERBOSELOG("predefined obp" << obp);
     }
   auto res= BxoVSet(pset);
   BXO_VERBOSELOG("set_of_predefined_objects=" << res
                  << " with comment=" << BXO_VARPREDEF(comment));
   return res;
 } // end of BxoObject::set_of_predefined_objects
+
+const std::set<std::string>
+BxoObject::all_names (void)
+{
+  std::set<std::string> ns;
+  for (auto p : _namedict_)
+    {
+      BXO_ASSERT(_namemap_.find(p.second.get()) != _namemap_.end()
+                 && _namemap_.find(p.second.get())->second == p.first, "bad name " << p.first);
+      ns.insert(p.first);
+    }
+  return ns;
+} // end BxoObject::all_names
 
 BxoObject::~BxoObject()
 {

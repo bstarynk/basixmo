@@ -1053,6 +1053,7 @@ public:
   };
   static void initialize_predefined_objects (void);
   static BxoVal set_of_predefined_objects (void);
+  static const std::set<std::string> all_names (void);
   BxoHash_t hash()const
   {
     return _hash;
@@ -1121,7 +1122,7 @@ public:
       return it->second;
     else return nullptr;
   };
-  static BxoObject*find_named(const std::string&str)
+  static BxoObject*find_named_objptr(const std::string&str)
   {
     return find_named_objref(str).get();
   }

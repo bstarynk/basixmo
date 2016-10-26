@@ -236,6 +236,14 @@ main (int argc_main, char **argv_main)
       BxoLoader loader;
       loader.load();
     }
+  BXO_VERBOSELOG("all_names=(" << BxoOut([=](std::ostream&out)
+  {
+    auto an = BxoObject::all_names();
+    for (std::string ns: an)
+      {
+        out << " " << ns << ":" << BxoObject::find_named_objptr(ns)->strid();
+      }
+  }) << ")");
   BXO_VERBOSELOG("comment singleton is " << BxoVSet(BXO_VARPREDEF(comment)));
   BXO_VERBOSELOG("comment,payload_hashset pair is "
                  << BxoVSet(BXO_VARPREDEF(comment),BXO_VARPREDEF(payload_hashset)));
