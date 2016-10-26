@@ -22,6 +22,7 @@
 #include <QtSql>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QProcess>
 #include <QFileInfo>
 
 BxoLoader::BxoLoader(const std::string dirnam)
@@ -590,7 +591,8 @@ BxoDumper::emit_all()
 std::string
 BxoDumper::output_path(const std::string& filpath)
 {
-  if (filpath.empty() || filpath[0] == '/'|| filpath.find("..") != std::string::npos
+  if (filpath.empty() || filpath[0] == '/'
+      || filpath.find("..") != std::string::npos
       || !(isalnum(filpath[0])|| filpath[0]=='_')
       || filpath[filpath.size()-1]=='/')
     {
@@ -606,6 +608,9 @@ BxoDumper::output_path(const std::string& filpath)
   return _du_dirname + "/" + filpath + _du_tempsuffix;
 } // end of BxoDumper::output_path
 
+
+
+
 void
 BxoDumper::full_dump(void)
 {
@@ -620,7 +625,6 @@ BxoDumper::full_dump(void)
     }
   {
     auto timestampath = output_path(std::string("_BxoDumpTimeStamp"));
-    BXO_ASSERT(timestampath[0] == '/', "bad timestampath: " << timestampath);
     FILE* filtims = fopen(timestampath.c_str(), "w");
     if (!filtims)
       {
@@ -649,7 +653,6 @@ BxoDumper::full_dump(void)
   }
   BXO_ASSERT(_du_sqldb == nullptr, "got an sqldb");
   auto sqlitepath = output_path(std::string(basixmo_statebase)+".sqlite");
-  BXO_ASSERT(sqlitepath[0] == '/', "bad sqlitepath=" << sqlitepath);
   _du_sqldb = new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE", "bxodumper"));
   _du_sqldb->setDatabaseName(QString(sqlitepath.c_str()));
   if (!_du_sqldb->open())
@@ -680,6 +683,18 @@ BxoDumper::full_dump(void)
     }
   delete _du_sqldb;
   _du_sqldb = nullptr;
+  {
+    QProcess dumpproc;
+    QStringList dumpargs;
+    dumpargs << (_du_dirname+"/"+basixmo_statebase+".sqlite").c_str() << (_du_dirname+"/"+basixmo_statebase+".sql").c_str();
+    dumpproc.start((std::string {basixmo_directory} + "/" + BXO_DUMP_SCRIPT).c_str(), dumpargs);
+    dumpproc.waitForFinished(-1);
+    if (dumpproc.exitStatus() != QProcess::NormalExit || dumpproc.exitCode() != 0)
+      {
+        BXO_BACKTRACELOG("dump script " << BXO_DUMP_SCRIPT << " failed in " << _du_dirname);
+        throw std::runtime_error("BxoDumper::full_dump dump script failed");
+      }
+  }
   double elaptim = bxo_elapsed_real_time() - _du_startelapsedtime;
   double cputim = bxo_process_cpu_time () - _du_startprocesstime;
   printf("\n"

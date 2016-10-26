@@ -251,6 +251,7 @@ class BxoTuple;
 class BxoDumper;
 class BxoLoader;
 
+#define BXO_DUMP_SCRIPT "basixmo-dump-state.sh"
 
 class BxoRandom
 {
