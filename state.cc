@@ -552,7 +552,7 @@ BxoDumper::emit_all()
   // emit the names
   {
     QSqlQuery insnamquery(*_du_sqldb);
-    insnamquery.prepare("INSERT INTO t_names (nam_str, namoid) VALUES(?, ?)");
+    insnamquery.prepare("INSERT INTO t_names (nam_str, nam_oid) VALUES(?, ?)");
     enum { InsnamStrIx, InsnamIdIx, Insnam_Last };
     for (auto p: mapname)
       {
@@ -801,6 +801,7 @@ BxoDumper::emit_object_row_module(BxoObject*pob)
     {
       _du_queryinsobj->bindValue((int)InsobPaylcontIx, "");
       _du_queryinsobj->bindValue((int)InsobPaylmodIx, "");
+      _du_queryinsobj->bindValue((int)InsobPaylkindIx, "");
     }
   if (!_du_queryinsobj->exec())
     {
