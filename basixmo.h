@@ -85,6 +85,9 @@ extern "C" const char*const basixmo_shellsources[];
 extern "C" const char basixmo_directory[];
 extern "C" const char basixmo_statebase[];
 
+/// the dlopen handle for the whole program
+extern "C" void* bxo_dlh;
+
 static inline pid_t
 bxo_gettid (void)
 {
@@ -553,6 +556,9 @@ public:
   // dumpobset
 };        // end class BxoDumper
 
+
+
+
 class BxoLoader
 {
   friend class BxoObject;
@@ -569,7 +575,8 @@ class BxoLoader
   void link_modules(void);
   void fill_objects_contents(void);
   void load_objects_class(void);
-  void load_objects_payload(void);
+  void load_objects_create_payload(void);
+  void load_objects_fill_payload(void);
   std::shared_ptr<BxoObject> name_the_predefined(const std::string&nam, const std::string&idstr);
 protected:
   void register_objref(const std::string&,std::shared_ptr<BxoObject> obp);
@@ -1177,6 +1184,8 @@ public:
   }
   static std::shared_ptr<BxoObject> load_objref(BxoLoader&ld, const std::string& idstr);
   void load_content(const BxoJson&, BxoLoader&);
+  void load_set_class(std::shared_ptr<BxoObject> obclass, BxoLoader&);
+  void load_set_payload(BxoPayload*payl, BxoLoader&);
   void touch_load(time_t, BxoLoader&);
   void scan_content_dump(BxoDumper&) const;
   BxoJson json_for_content(BxoDumper&) const;
@@ -1210,16 +1219,26 @@ enum Bxo_PredefHash_en
   extern "C" std::shared_ptr<BxoObject> BXO_VARGLOBAL(Name);
 #include "_bxo_global.h"
 
+
+
+////////////////
 class BxoPayload
 {
   friend class BxoObject;
+  friend class BxoLoader;
   friend class BxoVal;
   friend class std::unique_ptr<BxoPayload>;
   friend class std::shared_ptr<BxoObject>;
   BxoObject*const _owner;
 protected:
-  BxoPayload(BxoObject& own) : _owner(&own) {};
+  struct PayloadTag {};
+  BxoPayload(BxoObject& own, PayloadTag) : _owner(&own) {};
+  BxoPayload(BxoObject& own, BxoLoader&) : _owner(&own) {};
+  typedef BxoPayload*loader_create_sigt (BxoObject*,BxoLoader*);
 public:
+  // each Payload class Foo of kind object of id KindId comes with a function
+  /// extern "C" loader_create_sigt bxoload_KindId;
+  static constexpr const char* loader_prefix = "bxoload";
   virtual ~BxoPayload() {};
   BxoPayload(BxoPayload&&) = delete;
   BxoPayload(const BxoPayload&) = delete;
@@ -1227,6 +1246,7 @@ public:
   virtual std::shared_ptr<BxoObject> module_ob() const =0;
   virtual void scan_payload_content(BxoDumper&) const =0;
   virtual const BxoJson emit_payload_content(BxoDumper&) const =0;
+  virtual void load_payload_content(const BxoJson&, BxoLoader&) =0;
   BxoObject* owner () const
   {
     return _owner;

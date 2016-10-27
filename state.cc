@@ -153,8 +153,9 @@ BxoLoader::load()
   name_predefined ();
   link_modules ();
   fill_objects_contents ();
-  // load_objects_class ();
-  // load_objects_payload ();
+  load_objects_class ();
+  load_objects_create_payload ();
+  load_objects_fill_payload ();
   _ld_sqldb->close();
   int nbobj = _ld_idtoobjmap.size();
   _ld_idtoobjmap.clear();
@@ -383,15 +384,123 @@ BxoLoader::fill_objects_contents(void)
     }
 } // end of BxoLoader::fill_objects_contents
 
+
+
 void
 BxoLoader::load_objects_class(void)
 {
+  QSqlQuery query(*_ld_sqldb);
+  constexpr const char*sqlsel = "SELECT ob_id, ob_classid FROM t_objects WHERE ob_classid IS NOT \"\" ";
+  enum { ResixId, ResixClassid, Resix_LAST };
+  if (!query.exec(sqlsel))
+    {
+      BXO_BACKTRACELOG("load_objects_class Sql query failure: " <<  _ld_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::load_objects_class query failure");
+    }
+  while (query.next())
+    {
+      std::string idstr = query.value(ResixId).toString().toStdString();
+      std::string classidstr = query.value(ResixClassid).toString().toStdString();
+      auto pob = find_loadedobj(idstr);
+      if (!pob)
+        {
+          BXO_BACKTRACELOG("load_objects_class cant find object " << idstr);
+          throw std::runtime_error("BxoLoader::load_objects_class missing object");
+        }
+      auto pclassob = find_loadedobj(classidstr);
+      if (!pclassob)
+        {
+          BXO_BACKTRACELOG("load_objects_class cant find class " << classidstr << " for object " << idstr);
+          throw std::runtime_error("BxoLoader::load_objects_class missing class");
+        }
+      pob->load_set_class(pclassob,*this);
+    }
 } // end of BxoLoader::load_objects_class
 
+
+
 void
-BxoLoader::load_objects_payload(void)
+BxoLoader::load_objects_create_payload(void)
 {
-} // end of BxoLoader::load_objects_payload
+  QSqlQuery query(*_ld_sqldb);
+  constexpr const char*sqlsel = "SELECT ob_id, ob_paylkid FROM t_objects WHERE ob_paylkid IS NOT \"\" ";
+  enum { ResixId, ResixPaylkId, Resix_LAST };
+  if (!query.exec(sqlsel))
+    {
+      BXO_BACKTRACELOG("load_objects_create_payload Sql query failure: " <<  _ld_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::load_objects_create_payload query failure");
+    }
+  while (query.next())
+    {
+      std::string idstr = query.value(ResixId).toString().toStdString();
+      std::string pykidstr = query.value(ResixPaylkId).toString().toStdString();
+      auto pob = find_loadedobj(idstr);
+      if (!pob)
+        {
+          BXO_BACKTRACELOG("load_objects_create_payload cant find object " << idstr);
+          throw std::runtime_error("BxoLoader::load_objects_create_payload missing object");
+        }
+      auto pykindob = find_loadedobj(pykidstr);
+      if (!pykindob)
+        {
+          BXO_BACKTRACELOG("load_objects_create_payload cant find payload kind " << pykidstr << " for object " << idstr);
+          throw std::runtime_error("BxoLoader::load_objects_create_payload missing payload kind");
+        }
+      std::string loadername = std::string {BxoPayload::loader_prefix} + pykidstr;
+      void* ldfunad = dlsym(bxo_dlh, loadername.c_str());
+      if (ldfunad == nullptr)
+        {
+          BXO_BACKTRACELOG("load_objects_create_payload for object " << pob << " of payload kind " << pykindob
+                           << " failed to dlsym " << loadername << " : " << dlerror());
+          throw std::runtime_error("BxoLoader::load_objects_create_payload missing loader fun");
+        }
+      auto ldfun = reinterpret_cast<BxoPayload::loader_create_sigt*>(ldfunad);
+      BxoPayload* payl= (*ldfun)(pob.get(),this);
+      pob->load_set_payload(payl,*this);
+    }
+} // end of BxoLoader::load_objects_create_payload
+
+
+
+void
+BxoLoader::load_objects_fill_payload(void)
+{
+  QSqlQuery query(*_ld_sqldb);
+  constexpr const char*sqlsel = "SELECT ob_id, ob_paylcont FROM t_objects WHERE ob_paylcont IS NOT \"\" ";
+  enum { ResixId, ResixPaylcont, Resix_LAST };
+  if (!query.exec(sqlsel))
+    {
+      BXO_BACKTRACELOG("load_objects_fill_payload Sql query failure: " <<  _ld_sqldb->lastError().text().toStdString());
+      throw std::runtime_error("BxoLoader::load_objects_fill_payload query failure");
+    }
+  while (query.next())
+    {
+      std::string idstr = query.value(ResixId).toString().toStdString();
+      auto pob = find_loadedobj(idstr);
+      if (!pob)
+        {
+          BXO_BACKTRACELOG("load_objects_fill_payload cant find object " << idstr);
+          throw std::runtime_error("BxoLoader::load_objects_fill_payload missing object");
+        }
+      if (!pob->payload())
+        {
+          BXO_BACKTRACELOG("load_objects_fill_payload object " << pob << " without payload");;
+          throw std::runtime_error("BxoLoader::load_objects_fill_payload object without payload");
+        }
+      std::string jsonstr = query.value(ResixPaylcont).toString().toStdString();
+      Json::Reader jrd(Json::Features::strictMode());
+      BxoJson jv;
+      if (!jrd.parse(jsonstr,jv,false))
+        {
+          BXO_BACKTRACELOG("load_objects_fill_payload Json parse failure for " << idstr
+                           << ": " << jrd.getFormattedErrorMessages()
+                           << std::endl << "jsonstr=" << jsonstr
+                           << std::endl);
+          throw std::runtime_error("BxoLoader::load_objects_fill_payload Json parse failure");
+        }
+      pob->payload()->load_payload_content(jv,*this);
+    }
+} // end of BxoLoader::load_objects_fill_payload
 
 
 
@@ -796,10 +905,21 @@ BxoDumper::emit_object_row_module(BxoObject*pob)
       auto pykindob = payl->kind_ob();
       if (pykindob && is_dumpable(pykindob))
         {
-          pydumpable = true;
-          _du_queryinsobj->bindValue((int)InsobPaylkindIx, pykindob->strid().c_str());
-        }
-      else  _du_queryinsobj->bindValue((int)InsobPaylkindIx, "");
+          std::string loadername = std::string {BxoPayload::loader_prefix} + pykindob->strid();
+          void* ldfun = dlsym(bxo_dlh, loadername.c_str());
+          if (ldfun != nullptr)
+            {
+              pydumpable = true;
+              _du_queryinsobj->bindValue((int)InsobPaylkindIx, pykindob->strid().c_str());
+            }
+          else // unlikely, is probably symptom of something wrong
+            {
+              BXO_BACKTRACELOG("emit_object_row: cannot dlsym " << loadername << " : " << dlerror()
+                               << " for payload of " << pob << " of kind " << pykindob);
+              // we dont throw any runtime exception
+              pydumpable = false;
+            }
+        };
     };
   if (pydumpable)
     {
@@ -936,7 +1056,22 @@ BxoObject::load_content(const BxoJson&jv, BxoLoader&ld)
     }
 } // end BxoObject::load_content
 
-void BxoObject::touch_load(time_t mtim, BxoLoader&)
+void
+BxoObject::touch_load(time_t mtim, BxoLoader&)
 {
   _mtime = (time_t) mtim;
 } // end BxoObject::touch_load
+
+
+void
+BxoObject::load_set_class(std::shared_ptr<BxoObject> obclass, BxoLoader&)
+{
+  _classob = obclass;
+} // end of BxoObject::load_set_class
+
+void
+BxoObject::load_set_payload(BxoPayload*payl, BxoLoader&)
+{
+  BXO_ASSERT(payl && payl->owner() == this, "bad payl for " << this);
+  _payl.reset(payl);
+}

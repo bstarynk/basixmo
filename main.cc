@@ -26,6 +26,8 @@
 
 thread_local BxoRandom BxoRandom::_rand_thr_;
 bool bxo_verboseflag;
+void* bxo_dlh;
+
 
 void bxo_abort(void)
 {
@@ -189,13 +191,20 @@ static void
 bxo_sqlite_errorlog (void *pdata BXO_UNUSED, int errcode, const char *msg)
 {
   BXO_BACKTRACELOG("Sqlite Error errcode="<< errcode << " msg=" << msg);
-}
+} // end bxo_sqlite_errorlog
 
 int
 main (int argc_main, char **argv_main)
 {
   clock_gettime (CLOCK_REALTIME, &start_realtime_ts_bxo);
   check_updated_binary_bxo();
+  bxo_dlh = dlopen(nullptr, RTLD_NOW|RTLD_GLOBAL);
+  if (!bxo_dlh)
+    {
+      fprintf(stderr, "%s failed to dlopen main program (%s)\n",
+              argv_main[0], dlerror());
+      exit(EXIT_FAILURE);
+    }
   bool nogui = false;
   for (int ix=1; ix<argc_main; ix++)
     {
