@@ -1,4 +1,4 @@
--- basixmo_state.sql dump 2016 Oct 27 from basixmo_state.sqlite dumped by /ssdhome/basile/basixmo/basixmo-dump-state.sh .....
+-- basixmo_state.sql dump 2016 Oct 27 from basixmo_state.sqlite dumped by ./basixmo-dump-state.sh .....
 
  --   Copyright (C) 2016 Basile Starynkevitch.
  --  This sqlite3 dump file basixmo_state.sql is part of BASIXMO.
@@ -30,7 +30,8 @@ INSERT INTO "t_objects" VALUES('_0BV96V94PJIn9si1K',0,'{
    ],
    "comps" : []
 }
-','','','','');
+','',
+'_7yw2rDBxjs1XBu2ee','{}','');
 INSERT INTO "t_objects" VALUES('_5JG8lVw6jwlUT7PLK',1473050875,'{
    "@name" : "payload_assoval",
    "attrs" : [

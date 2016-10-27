@@ -275,7 +275,7 @@ BxoSystemPayload::emit_payload_content(BxoDumper&du BXO_UNUSED) const
 } // end of BxoSystemPayload::emit_payload_content
 
 void
-BxoSystemPayload::load_payload_content(const BxoJson&jv, BxoLoader&ld)
+BxoSystemPayload::load_payload_content(const BxoJson&jv, BxoLoader&ld BXO_UNUSED)
 {
   if (jv.isMember("system"))
     {
@@ -294,5 +294,6 @@ bxoload_payload_system(BxoObject*obj,BxoLoader*ld)
 {
   BXO_ASSERT (obj != nullptr, "null obj");
   BXO_ASSERT (ld != nullptr, "no loader");
+  BXO_VERBOSELOG("obj=" << obj);
   return new BxoSystemPayload(*obj);
 }
