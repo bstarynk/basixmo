@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <set>
 #include <initializer_list>
 #include <map>
@@ -370,6 +371,7 @@ enum class BxoVKind : std::uint8_t
   // LinkK
 };
 
+class BxoSequence;
 class BxoVal
 {
   /// these classes are subclasses of BxoVal
@@ -413,8 +415,9 @@ protected:
   inline BxoVal(const std::shared_ptr<BxoObject> op, TagObject);
   inline BxoVal(TagSet, const BxoSet*pset);
   inline BxoVal(TagTuple, const BxoTuple*ptup);
-  BxoVal() : BxoVal(TagNone {}, nullptr) {};
 public:
+  BxoVal() : BxoVal(TagNone {}, nullptr) {};
+  BxoVal(std::nullptr_t) : BxoVal(TagNone {}, nullptr) {};
   inline BxoVal(const BxoVal&v);
   inline BxoVal(BxoVal&&v);
   inline BxoVal& operator = (const BxoVal&);
@@ -445,6 +448,63 @@ public:
   void scan_dump(BxoDumper&) const;
   static BxoVal from_json(BxoLoader&, const BxoJson&);
   void out(std::ostream&os) const;
+  /// the is_XXX methods are testing the kind
+  /// the as_XXX methods may throw an exception
+  /// the get_XXX methods may throw an exception or gives a raw non-null ptr
+  /// the to_XXX methods make return a default
+  bool is_null(void) const
+  {
+    return _kind == BxoVKind::NoneK;
+  };
+  bool operator ! (void) const
+  {
+    return is_null();
+  };
+  operator bool (void) const
+  {
+    return !is_null();
+  };
+  inline std::nullptr_t as_null(void) const;
+  bool is_int(void) const
+  {
+    return  _kind == BxoVKind::IntK;
+  };
+  inline intptr_t as_int (void) const;
+  inline intptr_t to_int (intptr_t def=0) const
+  {
+    if (_kind != BxoVKind::IntK) return def;
+    return _int;
+  };
+  bool is_string(void) const
+  {
+    return _kind == BxoVKind::StringK;
+  };
+  inline std::shared_ptr<const BxoString> as_bstring(void) const;
+  inline std::shared_ptr<const BxoString> to_bstring(const std::shared_ptr<const BxoString>& def=nullptr) const;
+  inline const BxoString*get_bstring(void) const;
+  inline std::string as_string(void) const;
+  inline std::string to_string(const std::string& str="") const;
+  bool is_set(void) const
+  {
+    return _kind == BxoVKind::SetK;
+  };
+  inline std::shared_ptr<const BxoSet> as_set(void) const;
+  inline std::shared_ptr<const BxoSet> to_set(const std::shared_ptr<const BxoSet> def=nullptr) const;
+  inline const BxoSet*get_set(void) const;
+  bool is_tuple(void) const
+  {
+    return _kind == BxoVKind::TupleK;
+  };
+  inline std::shared_ptr<const BxoTuple> as_tuple(void) const;
+  inline std::shared_ptr<const BxoTuple> to_tuple(const std::shared_ptr<const BxoTuple> def=nullptr) const;
+  inline const BxoTuple*get_tuple(void) const;
+  bool is_sequence(void) const
+  {
+    return  _kind == BxoVKind::SetK || _kind ==BxoVKind::TupleK;
+  };
+  inline std::shared_ptr<const BxoSequence> as_sequence(void) const;
+  inline std::shared_ptr<const BxoSequence> to_sequence(const std::shared_ptr<const BxoSequence> def=nullptr) const;
+  inline const BxoSequence*get_sequence(void) const;
 };        // end class BxoVal
 
 
@@ -1019,6 +1079,172 @@ BxoVal::~BxoVal()
 } // end BxoVal::~BxoVal
 
 
+std::nullptr_t
+BxoVal::as_null(void) const
+{
+  if (_kind != BxoVKind::NoneK)
+    {
+      BXO_BACKTRACELOG("as_null: non null value " << this);
+      throw std::runtime_error("as_null: non-null value");
+    }
+  return nullptr;
+} // end BxoVal::as_null
+
+intptr_t
+BxoVal::as_int(void) const
+{
+  if (_kind != BxoVKind::IntK)
+    {
+      BXO_BACKTRACELOG("as_int: non-int value " << this);
+      throw std::runtime_error("as_int: non-null value");
+    }
+  return _int;
+} // end BxoVal::as_int
+
+std::shared_ptr<const BxoString>
+BxoVal::as_bstring(void) const
+{
+  if (_kind != BxoVKind::StringK)
+    {
+      BXO_BACKTRACELOG("as_bstring: non-string value " << this);
+      throw std::runtime_error("as_bstring: non-string value");
+    }
+  return _str;
+} // end of BxoVal::as_bstring
+
+const BxoString*
+BxoVal::get_bstring(void) const
+{
+  if (_kind != BxoVKind::StringK)
+    {
+      BXO_BACKTRACELOG("get_bstring: non-string value " << this);
+      throw std::runtime_error("get_bstring: non-string value");
+    }
+  return _str.get();
+}
+
+std::shared_ptr<const BxoString>
+BxoVal::to_bstring(const std::shared_ptr<const BxoString>& def) const
+{
+  if (_kind != BxoVKind::StringK) return def;
+  return _str;
+} // end of BxoVal::to_bstring
+
+std::string
+BxoVal::as_string(void) const
+{
+  if (_kind != BxoVKind::StringK)
+    {
+      BXO_BACKTRACELOG("as_string: non-string value " << this);
+      throw std::runtime_error("as_string: non-string value");
+    }
+  return _str->string();
+} // end of BxoVal::as_string
+
+std::string
+BxoVal::to_string(const std::string&def) const
+{
+  if (_kind != BxoVKind::StringK) return def;
+  return _str->string();
+} // end BxoVal::to_string
+
+std::shared_ptr<const BxoSet>
+BxoVal::as_set(void) const
+{
+  if (_kind != BxoVKind::SetK)
+    {
+      BXO_BACKTRACELOG("as_set: non-st value " << this);
+      throw std::runtime_error("as_set: non-set value");
+    }
+  return _set;
+} // end BxoVal::as_set
+
+std::shared_ptr<const BxoSet>
+BxoVal::to_set(const std::shared_ptr<const BxoSet> def) const
+{
+  if (_kind != BxoVKind::SetK) return def;
+  return _set;
+}
+
+const BxoSet*
+BxoVal::get_set(void) const
+{
+  if (_kind != BxoVKind::SetK)
+    {
+      BXO_BACKTRACELOG("get_set: non-set value " << this);
+      throw std::runtime_error("get_set: non-set value");
+    }
+  return _set.get();
+} // end of BxoVal::get_set
+
+std::shared_ptr<const BxoTuple>
+BxoVal::as_tuple(void) const
+{
+  if (_kind != BxoVKind::TupleK)
+    {
+      BXO_BACKTRACELOG("as_tuple: non-tuple value " << this);
+      throw std::runtime_error("as_tuple: non-tuple value");
+    }
+  return _tup;
+} // end BxoVal::as_tuple
+
+std::shared_ptr<const BxoTuple>
+BxoVal::to_tuple(const std::shared_ptr<const BxoTuple> def) const
+{
+  if (_kind != BxoVKind::TupleK) return def;
+  return _tup;
+}
+
+const BxoTuple*
+BxoVal::get_tuple(void) const
+{
+  if (_kind != BxoVKind::TupleK)
+    {
+      BXO_BACKTRACELOG("get_tuple: non-tuple value " << this);
+      throw std::runtime_error("get_tuple: non-tuple value");
+    }
+  return _tup.get();
+} // end of BxoVal::get_tuple
+
+std::shared_ptr<const BxoSequence>
+BxoVal::as_sequence(void) const
+{
+  if (_kind == BxoVKind::TupleK)
+    return _tup;
+  else if (_kind == BxoVKind::SetK)
+    return _set;
+  else
+    {
+      BXO_BACKTRACELOG("as_sequence: non-sequence value " << this);
+      throw std::runtime_error("as_sequence: non-sequence value");
+    }
+} // end BxoVal::as_tuple
+
+std::shared_ptr<const BxoSequence>
+BxoVal::to_sequence(const std::shared_ptr<const BxoSequence> def) const
+{
+  if (_kind == BxoVKind::TupleK)
+    return _tup;
+  else if (_kind == BxoVKind::SetK)
+    return _set;
+  else return def;
+}
+
+const BxoSequence*
+BxoVal::get_sequence(void) const
+{
+  if (_kind == BxoVKind::TupleK)
+    return _tup.get();
+  else if (_kind == BxoVKind::SetK)
+    return _set.get();
+  else
+    {
+      BXO_BACKTRACELOG("get_sequence: non-sequence value " << this);
+      throw std::runtime_error("get_sequence: non-sequence value");
+    }
+} // end of BxoVal::get_sequence
+
+////////////////
 
 enum class BxoSpace: std::uint8_t
 {

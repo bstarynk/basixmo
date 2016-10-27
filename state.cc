@@ -649,7 +649,7 @@ BxoDumper::emit_all()
   for (BxoObject*pob : _du_objset)
     {
       BXO_ASSERT(pob != nullptr, "null pob");
-      std::clog << "BxoDumper::emit_all pob:" << pob->strid() << std::endl;
+      BXO_VERBOSELOG("BxoDumper::emit_all pob:" << pob << " of id " << pob->strid());
       auto modob = emit_object_row_module(pob);
       auto obnam = pob->name();
       if (!obnam.empty())

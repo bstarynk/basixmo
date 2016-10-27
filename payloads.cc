@@ -237,6 +237,8 @@ class BxoSystemPayload final : public BxoPayload
   std::string _predefpath;
   std::string _globalpath;
 public:
+  void generate_predef(BxoDumper*du) const;
+  void generate_global(BxoDumper*du) const;
   virtual std::shared_ptr<BxoObject> kind_ob() const
   {
     return BXO_VARPREDEF(payload_system);
@@ -259,11 +261,48 @@ public:
 };        // end class BxoSystemPayload
 
 void
-BxoSystemPayload::scan_payload_content(BxoDumper&du BXO_UNUSED) const
+BxoSystemPayload::scan_payload_content(BxoDumper&du) const
 {
   BXO_VERBOSELOG("owner=" << owner()
                  << " predefpath=" << _predefpath << " globalpath=" << _globalpath);
+  if (!_predefpath.empty())
+    du.do_after_scan([=](BxoDumper&dum,BxoVal)
+    {
+      generate_predef(&dum);
+    },nullptr);
+  if (!_globalpath.empty())
+    du.do_after_scan([=](BxoDumper&dum,BxoVal)
+    {
+      generate_global(&dum);
+    },nullptr);
 } // end of BxoSystemPayload::scan_payload_content
+
+
+
+void
+BxoSystemPayload::generate_predef(BxoDumper*pdu) const
+{
+  BXO_ASSERT(pdu != nullptr, "missing dumper");
+  auto prpath = pdu->output_path(_predefpath);
+  BXO_VERBOSELOG("should generate predef owner=" << owner()
+                 << " _predefpath=" << _predefpath
+                 << " prpath=" << prpath);
+  std::ofstream os(prpath);
+  os << BxoGplv3LicenseOut(_predefpath, "//", "") << std::flush;
+  auto prset = BxoObject::set_of_predefined_objects();
+#warning BxoSystemPayload::generate_predef unimplemented
+} // end of BxoSystemPayload::generate_predef
+
+
+
+void BxoSystemPayload::generate_global(BxoDumper*pdu) const
+{
+  BXO_ASSERT(pdu != nullptr, "missing dumper");
+  BXO_VERBOSELOG("should generate global owner=" << owner()
+                 << " _globalpath=" << _globalpath);
+} // end of BxoSystemPayload::generate_global
+
+
 
 const BxoJson
 BxoSystemPayload::emit_payload_content(BxoDumper&du BXO_UNUSED) const
