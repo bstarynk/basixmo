@@ -322,8 +322,8 @@ BxoSystemPayload::generate_predef(BxoDumper*pdu) const
       os << std::endl
          << "BXO_HAS_PREDEFINED(" << pob->pname()
          << "," << pob->strid()
-         << "," << pob->loid()
          << "," << pob->hid()
+         << "," << pob->loid()
          << "," << pob->hash()
          << ")" << std::endl;
     }
