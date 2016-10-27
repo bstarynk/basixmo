@@ -289,8 +289,47 @@ BxoSystemPayload::generate_predef(BxoDumper*pdu) const
                  << " prpath=" << prpath);
   std::ofstream os(prpath);
   os << BxoGplv3LicenseOut(_predefpath, "//", "") << std::flush;
-  auto prset = BxoObject::set_of_predefined_objects();
-#warning BxoSystemPayload::generate_predef unimplemented
+  auto prset = BxoObject::set_of_predefined_objects().get_set();
+  std::vector<std::shared_ptr<BxoObject>> prvec;
+  prvec.reserve(prset->length()+1);
+  auto pbeg = prset->begin();
+  auto pend = prset->end();
+  for (auto p = pbeg; p<pend; p++)
+    {
+      auto pob = *p;
+      prvec.push_back(pob);
+    }
+  std::sort(prvec.begin(), prvec.end(),
+            [=](const std::shared_ptr<BxoObject>&l,
+                const std::shared_ptr<BxoObject>&r)
+  {
+    return l->pname () < r->pname();
+  });
+  os << std::endl
+     << "#ifndef BXO_HAS_PREDEFINED" << std::endl
+     << "#error missing BXO_HAS_PREDEFINED" << std::endl
+     << "#endif /*BXO_HAS_PREDEFINED*/" << std::endl;
+  os << std::endl
+     << "#undef BXO_NB_PREDEFINED" << std::endl
+     << "#define BXO_NB_PREDEFINED  " << prvec.size() << std::endl;
+
+  os << "/// BXO_HAS_PREDEFINED(Nam,Idstr,Hid,Loid,Hash)" << std::endl;
+  os << std::endl;
+
+  for (auto pob: prvec)
+    {
+      BXO_ASSERT(pob, "null pob");
+      os << std::endl
+         << "BXO_HAS_PREDEFINED(" << pob->pname()
+         << "," << pob->strid()
+         << "," << pob->loid()
+         << "," << pob->hid()
+         << "," << pob->hash()
+         << ")" << std::endl;
+    }
+  os << std::endl << "#undef BXO_HAS_PREDEFINED" << std::endl << std::endl;
+  os << std::endl << "/* end of generated file " << _predefpath << " */"
+     << std::endl;
 } // end of BxoSystemPayload::generate_predef
 
 

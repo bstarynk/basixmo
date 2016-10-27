@@ -724,6 +724,20 @@ protected:
   }
   BxoJson sequence_to_json(BxoDumper&) const;
 public:
+  std::shared_ptr<BxoObject> *begin() const
+  {
+    return _len?_seq:nullptr;
+  };
+  std::shared_ptr<BxoObject> *end() const
+  {
+    return _len?(_seq+_len):nullptr;
+  };
+  std::shared_ptr<BxoObject> at(int rk) const
+  {
+    if (rk<0) rk += _len;
+    if (rk>=0 && rk<(int)_len) return _seq[rk];
+    return nullptr;
+  }
   BxoHash_t hash()const
   {
     return _hash;
