@@ -1197,6 +1197,10 @@ public:
   {
     return _payl.get();
   };
+  template <class PaylClass, typename... Args> void put_payload(Args... args)
+  {
+    _payl = new PaylClass(this, args...);
+  }
 };        // end class BxoObject
 
 
@@ -1234,8 +1238,8 @@ protected:
   struct PayloadTag {};
   BxoPayload(BxoObject& own, PayloadTag) : _owner(&own) {};
   BxoPayload(BxoObject& own, BxoLoader&) : _owner(&own) {};
-  typedef BxoPayload*loader_create_sigt (BxoObject*,BxoLoader*);
 public:
+  typedef BxoPayload*loader_create_sigt (BxoObject*,BxoLoader*);
   // each Payload class Foo of kind object of id KindId comes with a function
   /// extern "C" loader_create_sigt bxoload_KindId;
   static constexpr const char* loader_prefix = "bxoload";

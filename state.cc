@@ -1074,4 +1074,4 @@ BxoObject::load_set_payload(BxoPayload*payl, BxoLoader&)
 {
   BXO_ASSERT(payl && payl->owner() == this, "bad payl for " << this);
   _payl.reset(payl);
-}
+} // end of BxoObject::load_set_payload
