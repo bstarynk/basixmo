@@ -32,8 +32,8 @@ INSERT INTO "t_objects" VALUES('_0BV96V94PJIn9si1K',0,'{
 }
 ','','_7yw2rDBxjs1XBu2ee','{
    "@owner" : "_0BV96V94PJIn9si1K",
-   "globalpath" : "_bxo_global",
-   "predefpath" : "_bxo_predef",
+   "globalpath" : "_bxo_global.h",
+   "predefpath" : "_bxo_predef.h",
    "system" : true
 }
 ','');

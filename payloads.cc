@@ -250,7 +250,7 @@ public:
   virtual void load_payload_content(const BxoJson&, BxoLoader&);
   BxoSystemPayload(BxoObject& own)
     : BxoPayload(own, PayloadTag {}),
-  _predefpath("_bxo_predef"), _globalpath("_bxo_global") {};
+  _predefpath("_bxo_predef.h"), _globalpath("_bxo_global.h") {};
   ~BxoSystemPayload()
   {
     _predefpath.clear();
@@ -261,6 +261,8 @@ public:
 void
 BxoSystemPayload::scan_payload_content(BxoDumper&du BXO_UNUSED) const
 {
+  BXO_VERBOSELOG("owner=" << owner()
+                 << " predefpath=" << _predefpath << " globalpath=" << _globalpath);
 } // end of BxoSystemPayload::scan_payload_content
 
 const BxoJson

@@ -235,6 +235,32 @@ inline std::ostream& operator << (std::ostream& os, const BxoUtf8Out& bo)
   bo.out(os);
   return os;
 };
+
+class BxoGplv3LicenseOut
+{
+  std::string _file;
+  std::string _prefix;
+  std::string _suffix;
+public:
+  BxoGplv3LicenseOut(const std::string&fil, const std::string& prefix, const std::string&suffix)
+    : _file(fil), _prefix(prefix), _suffix(suffix) {};
+  ~BxoGplv3LicenseOut()
+  {
+    _file.clear();
+    _prefix.clear();
+    _suffix.clear();
+  };
+  void out(std::ostream&) const;
+  BxoGplv3LicenseOut(const BxoGplv3LicenseOut&) = default;
+  BxoGplv3LicenseOut(BxoGplv3LicenseOut&&) = default;
+};        // end of BxoGplv3LicenseOut
+
+inline std::ostream& operator << (std::ostream& os, const BxoGplv3LicenseOut& bo)
+{
+  bo.out(os);
+  return os;
+};
+
 ////////////////
 
 typedef uint32_t BxoHash_t;
