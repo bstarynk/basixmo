@@ -338,24 +338,25 @@ void BxoGplv3LicenseOut::out(std::ostream&os) const
   struct tm nowtm;
   memset (&nowtm, 0, sizeof (nowtm));
   localtime_r (&now, &nowtm);
-  os << _prefix << "generated file " << _file << " - DO NOT EDIT" << _suffix << '\n';
-  if (1900+nowtm.tm_year != BASE_YEAR_BXO)
-    os << _prefix << "Copyright (C) " << BASE_YEAR_BXO << " - "
-       << 1900+nowtm.tm_year << " " << copowner << _suffix << '\n';
-  else
-    os << _prefix << "Copyright (C) " << BASE_YEAR_BXO << " " << copowner << _suffix << '\n';
-  os << _prefix << "This generated file " << _file << " is part of BASIXMO" << _suffix << '\n';
-  os << _prefix << "BASIXMO is free software; you can redistribute it and/or modify" << _suffix << '\n';
-  os << _prefix << "it under the terms of the GNU General Public License as published by" << _suffix << '\n';
-  os << _prefix << "the Free Software Foundation; either version 3, or (at your option)" << _suffix << '\n';
-  os << _prefix << "any later version." << _suffix << '\n';
+  os << _prefix << " **generated** file " << _file << " - DO NOT EDIT!! " << _suffix << '\n';
   os << _prefix << ' ' << _suffix << '\n';
-  os << _prefix << "any later version." << _suffix << '\n';
-  os << _prefix << "BASIXMO is distributed in the hope that it will be useful," << _suffix << '\n';
-  os << _prefix << "but WITHOUT ANY WARRANTY; without even the implied warranty of" << _suffix << '\n';
-  os << _prefix << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the" << _suffix << '\n';
-  os << _prefix << "GNU General Public License for more details." << _suffix << '\n';
-  os << _prefix << "You should have received a copy of the GNU General Public License" << _suffix << '\n';
-  os << _prefix << "along with BASIXMO; see the file COPYING3.   If not see" << _suffix << '\n';
-  os << _prefix << "<http://www.gnu.org/licenses/>." << _suffix << std::endl;
+  if (1900+nowtm.tm_year != BASE_YEAR_BXO)
+    os << _prefix << " Copyright (C) " << BASE_YEAR_BXO << " - "
+       << 1900+nowtm.tm_year << " " << copowner << ' ' << _suffix << '\n';
+  else
+    os << _prefix << " Copyright (C) " << BASE_YEAR_BXO << " " << copowner << ' ' <<_suffix << '\n';
+  os << _prefix << " This generated file " << _file << " is part of BASIXMO " << _suffix << '\n';
+  os << _prefix << ' ' << _suffix << '\n';
+  os << _prefix << " BASIXMO is free software; you can redistribute it and/or modify " << _suffix << '\n';
+  os << _prefix << " it under the terms of the GNU General Public License as published by " << _suffix << '\n';
+  os << _prefix << " the Free Software Foundation; either version 3, or (at your option) " << _suffix << '\n';
+  os << _prefix << " any later version. " << _suffix << '\n';
+  os << _prefix << ' ' << _suffix << '\n';
+  os << _prefix << " BASIXMO is distributed in the hope that it will be useful, " << _suffix << '\n';
+  os << _prefix << " but WITHOUT ANY WARRANTY; without even the implied warranty of " << _suffix << '\n';
+  os << _prefix << " MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the " << _suffix << '\n';
+  os << _prefix << " GNU General Public License for more details. " << _suffix << '\n';
+  os << _prefix << " You should have received a copy of the GNU General Public License " << _suffix << '\n';
+  os << _prefix << " along with BASIXMO; see the file COPYING3.   If not see " << _suffix << '\n';
+  os << _prefix << " <http://www.gnu.org/licenses/>. " << _suffix << std::endl;
 } // end BxoGplv3LicenseOut::out
