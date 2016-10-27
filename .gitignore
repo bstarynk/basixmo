@@ -13,3 +13,4 @@ bxmo
 *.i
 core
 _timestamp.c
+_BxoDumpTimeStamp

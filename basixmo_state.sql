@@ -1,4 +1,4 @@
--- basixmo_state.sql dump 2016 Oct 26 from basixmo_state.sqlite dumped by ./basixmo-dump-state.sh .....
+-- basixmo_state.sql dump 2016 Oct 27 from basixmo_state.sqlite dumped by /ssdhome/basile/basixmo/basixmo-dump-state.sh .....
 
  --   Copyright (C) 2016 Basile Starynkevitch.
  --  This sqlite3 dump file basixmo_state.sql is part of BASIXMO.
@@ -20,12 +20,12 @@ PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
 CREATE TABLE t_params (par_name VARCHAR(35) PRIMARY KEY ASC NOT NULL UNIQUE,  par_value TEXT NOT NULL);
 CREATE TABLE t_objects (ob_id VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE, ob_mtime DATETIME, ob_jsoncont TEXT NOT NULL, ob_classid VARCHAR(20) NOT NULL, ob_paylkid VARCHAR(20) NOT NULL, ob_paylcont TEXT NOT NULL, ob_paylmod VARCHAR(20) NOT NULL);
-INSERT INTO "t_objects" VALUES('_8261sbF1f9ohzu2Iu',1473049630,'{
-   "@name" : "payload_hashset",
+INSERT INTO "t_objects" VALUES('_0BV96V94PJIn9si1K',0,'{
+   "@name" : "the_system",
    "attrs" : [
       {
          "at" : "_4xS1CSbRUFBW6PJiJ",
-         "va" : "for hashset payload"
+         "va" : "describes the entire system"
       }
    ],
    "comps" : []
@@ -42,6 +42,17 @@ INSERT INTO "t_objects" VALUES('_5JG8lVw6jwlUT7PLK',1473050875,'{
    "comps" : []
 }
 ','','','','');
+INSERT INTO "t_objects" VALUES('_8261sbF1f9ohzu2Iu',1473049630,'{
+   "@name" : "payload_hashset",
+   "attrs" : [
+      {
+         "at" : "_4xS1CSbRUFBW6PJiJ",
+         "va" : "for hashset payload"
+      }
+   ],
+   "comps" : []
+}
+','','','','');
 INSERT INTO "t_objects" VALUES('_4xS1CSbRUFBW6PJiJ',1472212346,'{
    "@name" : "comment",
    "attrs" : [
@@ -53,10 +64,23 @@ INSERT INTO "t_objects" VALUES('_4xS1CSbRUFBW6PJiJ',1472212346,'{
    "comps" : []
 }
 ','','','','');
+INSERT INTO "t_objects" VALUES('_7yw2rDBxjs1XBu2ee',1477571803,'{
+   "@name" : "payload_system",
+   "attrs" : [
+      {
+         "at" : "_4xS1CSbRUFBW6PJiJ",
+         "va" : "payload of the_system"
+      }
+   ],
+   "comps" : []
+}
+','','','','');
 CREATE TABLE t_names (nam_str PRIMARY KEY ASC NOT NULL UNIQUE, nam_oid  VARCHAR(20) NOT NULL UNIQUE);
 INSERT INTO "t_names" VALUES('comment','_4xS1CSbRUFBW6PJiJ');
 INSERT INTO "t_names" VALUES('payload_assoval','_5JG8lVw6jwlUT7PLK');
 INSERT INTO "t_names" VALUES('payload_hashset','_8261sbF1f9ohzu2Iu');
+INSERT INTO "t_names" VALUES('payload_system','_7yw2rDBxjs1XBu2ee');
+INSERT INTO "t_names" VALUES('the_system','_0BV96V94PJIn9si1K');
 CREATE TABLE t_modules (mod_oid VARCHAR(20) PRIMARY KEY ASC NOT NULL UNIQUE);
 CREATE UNIQUE INDEX x_namedid ON t_names (nam_oid);
 COMMIT;

@@ -21,9 +21,12 @@ extern "C" BxoPayload::loader_create_sigt
 bxoload_5JG8lVw6jwlUT7PLK BXO_OPTIMIZEDFUN; // payload_assoval
 extern "C" BxoPayload::loader_create_sigt
 bxoload_8261sbF1f9ohzu2Iu BXO_OPTIMIZEDFUN; // payload_hashset
+extern "C" BxoPayload::loader_create_sigt
+bxoload_7yw2rDBxjs1XBu2ee BXO_OPTIMIZEDFUN; // payload_system
 
 extern "C" BxoPayload::loader_create_sigt bxoload_payload_assoval;
 extern "C" BxoPayload::loader_create_sigt bxoload_payload_hashset;
+extern "C" BxoPayload::loader_create_sigt bxoload_payload_system;
 
 BxoPayload*bxoload_5JG8lVw6jwlUT7PLK(BxoObject*obj,BxoLoader*ld)
 {
@@ -33,6 +36,11 @@ BxoPayload*bxoload_5JG8lVw6jwlUT7PLK(BxoObject*obj,BxoLoader*ld)
 BxoPayload*bxoload_8261sbF1f9ohzu2Iu(BxoObject*obj,BxoLoader*ld)
 {
   return bxoload_payload_hashset(obj,ld);
+}
+
+BxoPayload*bxoload_7yw2rDBxjs1XBu2ee(BxoObject*obj,BxoLoader*ld)
+{
+  return bxoload_payload_system(obj,ld);
 }
 
 class BxoAssovalPayload final : public BxoPayload
@@ -221,4 +229,70 @@ bxoload_payload_hashset(BxoObject*obj,BxoLoader*ld)
   BXO_ASSERT (obj != nullptr, "null obj");
   BXO_ASSERT (ld != nullptr, "no loader");
   return new BxoHashsetPayload(*obj);
+}
+
+////////////////
+class BxoSystemPayload final : public BxoPayload
+{
+  std::string _predefpath;
+  std::string _globalpath;
+public:
+  virtual std::shared_ptr<BxoObject> kind_ob() const
+  {
+    return BXO_VARPREDEF(payload_system);
+  };
+  virtual std::shared_ptr<BxoObject> module_ob() const
+  {
+    return nullptr;
+  };
+  virtual void scan_payload_content(BxoDumper&) const;
+  virtual const BxoJson emit_payload_content(BxoDumper&) const;
+  virtual void load_payload_content(const BxoJson&, BxoLoader&);
+  BxoSystemPayload(BxoObject& own)
+    : BxoPayload(own, PayloadTag {}),
+  _predefpath("_bxo_predef"), _globalpath("_bxo_global") {};
+  ~BxoSystemPayload()
+  {
+    _predefpath.clear();
+    _globalpath.clear();
+  };
+};        // end class BxoSystemPayload
+
+void
+BxoSystemPayload::scan_payload_content(BxoDumper&du BXO_UNUSED) const
+{
+} // end of BxoSystemPayload::scan_payload_content
+
+const BxoJson
+BxoSystemPayload::emit_payload_content(BxoDumper&du BXO_UNUSED) const
+{
+  BxoJson job {Json::objectValue};
+  job["@owner"] = owner()->strid();
+  job["system"] = true;
+  job["predefpath"] = _predefpath;
+  job["globalpath"] = _globalpath;
+  return job;
+} // end of BxoSystemPayload::emit_payload_content
+
+void
+BxoSystemPayload::load_payload_content(const BxoJson&jv, BxoLoader&ld)
+{
+  if (jv.isMember("system"))
+    {
+      auto jpredefp = jv["predefpath"];
+      if (jpredefp.isString())
+        _predefpath = jpredefp.asString();
+      auto jglobalp = jv["globalpath"];
+      if (jglobalp.isString())
+        _globalpath = jglobalp.asString();
+    }
+} // end of BxoSystemPayload::load_payload_content
+
+
+BxoPayload*
+bxoload_payload_system(BxoObject*obj,BxoLoader*ld)
+{
+  BXO_ASSERT (obj != nullptr, "null obj");
+  BXO_ASSERT (ld != nullptr, "no loader");
+  return new BxoSystemPayload(*obj);
 }
