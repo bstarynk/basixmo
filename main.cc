@@ -305,14 +305,22 @@ main (int argc_main, char **argv_main)
   BXO_VERBOSELOG("comment,payload_hashset pair is "
                  << BxoVSet(BXO_VARPREDEF(comment),BXO_VARPREDEF(payload_hashset)));
   if (!nogui)
-    app->exec();
+    {
+      bxo_gui_init(dynamic_cast<QApplication*>(app));
+      app->exec();
+    }
+  else
+    {
+      fprintf(stderr, "no Graphical User Interface for Basixmo process %d\n",
+              (int)getpid());
+      fflush(nullptr);
+    }
   if (!BxoDumper::default_dump_dir().empty())
     {
       fprintf(stderr, "dumping into %s\n", BxoDumper::default_dump_dir().c_str());
       BxoDumper du(BxoDumper::default_dump_dir());
       du.full_dump();
     }
-#warning main: should handle the dump option
   printf("Basixmo ending pid %d (%.4f elapsed, %.4f process cpu seconds)\n",
          (int)getpid(), bxo_elapsed_real_time (), bxo_process_cpu_time ());
   fflush(nullptr);

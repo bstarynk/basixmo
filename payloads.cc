@@ -236,6 +236,7 @@ class BxoSystemPayload final : public BxoPayload
 {
   std::string _predefpath;
   std::string _globalpath;
+  void parse_for_global(const char*cxxfilepath, std::set<std::shared_ptr<BxoObject>>& globset) const;
 public:
   void generate_predef(BxoDumper*du) const;
   void generate_global(BxoDumper*du) const;
@@ -333,12 +334,94 @@ BxoSystemPayload::generate_predef(BxoDumper*pdu) const
 } // end of BxoSystemPayload::generate_predef
 
 
+void
+BxoSystemPayload::parse_for_global(const char*ccfilpath, std::set<std::shared_ptr<BxoObject>>& globset) const
+{
+  std::string fulcpath = std::string {basixmo_directory} + "/" + ccfilpath;
+  std::ifstream inp {fulcpath};
+  do
+    {
+      constexpr const char*globprefix = "bxoglob_";
+      std::string clin;
+      std::getline(inp,clin);
+      auto p = clin.find(globprefix);
+      while (p != std::string::npos)
+        {
+          auto e = p;
+          while (isalnum(clin[e]) || (clin[e] == '_' && clin[e-1] != '_')) e++;
+          auto nam = clin.substr(p+sizeof(globprefix)-1, e);
+          if (!nam.empty())
+            {
+              if (BxoObject::valid_name(nam))
+                {
+                  auto pob = BxoObject::find_named_objref(nam);
+                  if (pob)
+                    globset.insert(pob);
+                }
+              else if (isdigit(nam[0]))
+                {
+                  auto id = std::string("_") + nam;
+                  auto ptrob = BxoObject::find_from_idstr(id);
+                  if (ptrob)
+                    globset.insert(std::shared_ptr<BxoObject> {ptrob});
+                }
+            }
+          p = clin.find(globprefix, e);
+        }
+    }
+  while (inp);
+} // end BxoSystemPayload::parse_for_global
 
-void BxoSystemPayload::generate_global(BxoDumper*pdu) const
+void
+BxoSystemPayload::generate_global(BxoDumper*pdu) const
 {
   BXO_ASSERT(pdu != nullptr, "missing dumper");
   BXO_VERBOSELOG("should generate global owner=" << owner()
                  << " _globalpath=" << _globalpath);
+  std::set<std::shared_ptr<BxoObject>> globset;
+  for (auto cxxfilptr = basixmo_cxxsources; *cxxfilptr != nullptr; cxxfilptr++)
+    {
+      parse_for_global(*cxxfilptr, globset);
+    }
+  std::vector<std::shared_ptr<BxoObject>> globvec;
+  globvec.reserve(globset.size()+1);
+  for (auto pob : globset)
+    {
+      globvec.push_back(pob);
+    }
+  std::sort(globvec.begin(), globvec.end(),
+            [=](const std::shared_ptr<BxoObject>&l,
+                const std::shared_ptr<BxoObject>&r)
+  {
+    return l->pname () < r->pname();
+  });
+  auto globpath = pdu->output_path(_globalpath);
+  std::ofstream os(globpath);
+  os << BxoGplv3LicenseOut(_globalpath, "//", "") << std::flush;
+  os << std::endl
+     << "#ifndef BXO_HAS_GLOBAL" << std::endl
+     << "#error missing BXO_HAS_GLOBAL" << std::endl
+     << "#endif /*BXO_HAS_GLOBAL*/" << std::endl;
+  os << std::endl
+     << "#undef BXO_NB_GLOBAL" << std::endl
+     << "#define BXO_NB_GLOBAL  " << globvec.size() << std::endl;
+
+  os << "/// BXO_HAS_GLOBAL(Nam,Idstr,Hid,Loid,Hash)" << std::endl;
+  os << std::endl;
+  for (auto pob: globvec)
+    {
+      BXO_ASSERT(pob, "null pob");
+      os << std::endl
+         << "BXO_HAS_GLOBAL(" << pob->pname()
+         << "," << pob->strid()
+         << "," << pob->hid()
+         << "," << pob->loid()
+         << "," << pob->hash()
+         << ")" << std::endl;
+    }
+  os << std::endl << "#undef BXO_HAS_GLOBAL" << std::endl << std::endl;
+  os << std::endl << "/* end of generated file " << _globalpath << " */"
+     << std::endl;
 } // end of BxoSystemPayload::generate_global
 
 

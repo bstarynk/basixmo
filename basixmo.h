@@ -100,6 +100,8 @@ std::string bxo_demangled_typename(const std::type_info &ti);
 
 extern "C" int64_t bxo_prime_above(int64_t n);
 extern "C" int64_t bxo_prime_below(int64_t n);
+class QApplication;
+extern "C" void bxo_gui_init(QApplication*app);
 
 // time measurement, in seconds
 // query a clock
