@@ -14,3 +14,4 @@ bxmo
 core
 _timestamp.c
 _BxoDumpTimeStamp
+_*.mkd

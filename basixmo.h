@@ -1702,6 +1702,7 @@ inline std::ostream& operator << (std::ostream& os,  std::shared_ptr<BxoObject> 
     os << "~";
   return os;
 };
+
 inline std::ostream& operator << (std::ostream& os, const BxoObject* pob)
 {
   if (pob)

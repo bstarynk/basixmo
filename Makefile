@@ -16,13 +16,14 @@ CXXWARNFLAGS= -Wall -Wextra
 CXXPREPROFLAGS= -I /usr/local/include  $(shell $(PKGCONFIG) --cflags $(PACKAGES))  -I $(shell $(GCC) -print-file-name=include/)
 ## -fPIC is required by Qt5, -fPIE is not enough
 CXXCOMMONFLAGS= -fPIC
+QTMOC= moc
 CXXFLAGS= -std=gnu++14 $(CXXCOMMONFLAGS) $(CXXOPTIMFLAGS) $(CXXWARNFLAGS) $(CXXPREPROFLAGS)
 CFLAGS= -Wall $(COPTIMFLAGS)
 ASTYLEFLAGS= --style=gnu -s2  --convert-tabs
 INDENTFLAGS= --gnu-style --no-tabs --honour-newlines
 CXXSOURCES= $(wildcard [a-z]*.cc)
 CSOURCES= $(wildcard [a-z]*.c)
-## this xmastate basename is "sacred", don't change it
+## this basixmo_state basename is "sacred", don't change it
 BASIXMO_STATE=basixmo_state
 SHELLSOURCES= $(sort $(wildcard [a-z]*.sh))
 OBJECTS= $(patsubst %.cc,%.o,$(CXXSOURCES)) $(patsubst %.c,%.o,$(CSOURCES))
@@ -52,15 +53,23 @@ _timestamp.c: Makefile | $(OBJECTS)
 	@echo >> _timestamp.tmp
 	mv _timestamp.tmp _timestamp.c
 
-$(OBJECTS): basixmo.h $(GENERATED_HEADERS)
 bxmo: $(OBJECTS) _timestamp.o
 	@if [ -f $@ ]; then echo -n makebackup old executable: ' ' ; mv -v $@ $@~ ; fi
 	$(LINK.cc)  $(LINKFLAGS) $(OPTIMFLAGS) -rdynamic $(OBJECTS)  _timestamp.o $(LIBES) -o $@ 
 
-#%.o: %.cc basixmo.h $(GENERATED_HEADERS) | $(shell grep -q $(basename $<)-moc.h $< && echo $(basename $<)-moc.h)
+# we want Foo.o to conditionally depend upon Foo.moc.h iff Foo.cc
+# contains Foo.moc.h
+%.o: %.cc basixmo.h $(GENERATED_HEADERS) $(shell grep -q .$(patsubst %.cc,%.moc.h,$<) $< /dev/null && echo $(patsubst %.cc,%.moc.h,$<))
+#	echo '$$<=' $< '$$(patsubst %.cc,%.moc.h,$$<)=' $(patsubst %.cc,%.moc.h,$<)
+# implicitly COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c & OUTPUT_OPTION = -o $@
+	$(CXX)  $(CXXFLAGS) $(CPPFLAGS)  -MF $(patsubst %.cc,_%.mkd,$<) -MT $@ -MMD  $(TARGET_ARCH) -c -o $@ $< 
+
+%.moc.h: %.cc
+	$(QTMOC) -o $@ $<
 
 clean:
 	$(RM) *~ *% *.o *.so */*.so *.log */*~ */*.orig *.i *.ii *.orig README.html *#
+	$(RM) _*.mkd
 	$(RM) core*
 	$(RM) _timestamp.* bxmo
 
@@ -95,3 +104,5 @@ indent:
 
 %.ii: %.cc basixmo.h $(GENERATED_HEADERS)
 	$(COMPILE.cc) -C -E $< -o -  | sed s:^#://#:g > $@
+
+-include $(wildcard _*.mkd)
