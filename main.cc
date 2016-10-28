@@ -57,6 +57,21 @@ bxo_strftime_centi (char *buf, size_t len, const char *fmt, double ti)
   return buf;
 } // end bxo_strftime_centi
 
+std::string
+bxo_demangled_typename(const std::type_info &ti)
+{
+  int dstat = -1;
+  char*dnam = abi::__cxa_demangle(ti.name(), 0, 0, &dstat);
+  if (dstat == 0 && dnam != nullptr)
+    {
+      std::string ns {dnam};
+      free (dnam);
+      return ns;
+    }
+  if (dnam) free(dnam), dnam=nullptr;
+  return "??";
+} // end bxo_demangled_typename
+
 /************************* backtrace *************************/
 
 /* A callback function passed to the backtrace_full function.  */

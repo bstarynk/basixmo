@@ -37,6 +37,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <random>
+#include <typeinfo>
 
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
@@ -94,6 +95,8 @@ bxo_gettid (void)
 {
   return syscall (SYS_gettid, 0L);
 }
+
+std::string bxo_demangled_typename(const std::type_info &ti);
 
 extern "C" int64_t bxo_prime_above(int64_t n);
 extern "C" int64_t bxo_prime_below(int64_t n);
@@ -1463,6 +1466,31 @@ public:
   {
     return _payl.get();
   };
+  template <class PaylClass>
+  PaylClass*dyncast_payload() const
+  {
+    return dynamic_cast<PaylClass*>(_payl.get());
+  }
+  template <class PaylClass>
+  PaylClass*dynget_payload() const
+  {
+    auto py = _payl.get();
+    if (!py)
+      {
+        BXO_BACKTRACELOG("dynget_payload no payload for " << this
+                         << " but expecting " << bxo_demangled_typename(typeid(PaylClass)));
+        throw std::runtime_error("dynget_payload no payload");
+      }
+    auto dp = dynamic_cast<PaylClass*>(py);
+    if (!dp)
+      {
+        BXO_BACKTRACELOG("dynget_payload expecting "
+                         << bxo_demangled_typename(typeid(PaylClass))
+                         << " but got " << bxo_demangled_typename(typeid(*py)));
+        throw std::runtime_error("dynget_payload inappropriate payload");
+      }
+    return dp;
+  }
   template <class PaylClass, typename... Args> void put_payload(Args... args)
   {
     _payl = new PaylClass(this, args...);
