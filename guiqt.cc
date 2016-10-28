@@ -18,6 +18,7 @@
 
 #include "basixmo.h"
 
+// bxoglob_the_system
 void bxo_gui_init(QApplication*qapp)
 {
   BXO_ASSERT(qapp != nullptr, "no QApplication");

@@ -339,17 +339,20 @@ BxoSystemPayload::parse_for_global(const char*ccfilpath, std::set<std::shared_pt
 {
   std::string fulcpath = std::string {basixmo_directory} + "/" + ccfilpath;
   std::ifstream inp {fulcpath};
+  int lineno = 0;
+  std::string clin;
   do
     {
       constexpr const char*globprefix = "bxoglob_";
-      std::string clin;
+      clin.clear();
       std::getline(inp,clin);
+      lineno++;
       auto p = clin.find(globprefix);
       while (p != std::string::npos)
         {
           auto e = p;
           while (isalnum(clin[e]) || (clin[e] == '_' && clin[e-1] != '_')) e++;
-          auto nam = clin.substr(p+sizeof(globprefix)-1, e);
+          auto nam = clin.substr(p+sizeof(globprefix), e);
           if (!nam.empty())
             {
               if (BxoObject::valid_name(nam))
@@ -370,6 +373,7 @@ BxoSystemPayload::parse_for_global(const char*ccfilpath, std::set<std::shared_pt
         }
     }
   while (inp);
+  BXO_VERBOSELOG("after " << ccfilpath << " of " << lineno << " lines got " << globset.size() << " globals.");
 } // end BxoSystemPayload::parse_for_global
 
 void
@@ -382,6 +386,7 @@ BxoSystemPayload::generate_global(BxoDumper*pdu) const
   for (auto cxxfilptr = basixmo_cxxsources; *cxxfilptr != nullptr; cxxfilptr++)
     {
       parse_for_global(*cxxfilptr, globset);
+      BXO_VERBOSELOG("got " << globset.size() << " globals after " << *cxxfilptr);
     }
   std::vector<std::shared_ptr<BxoObject>> globvec;
   globvec.reserve(globset.size()+1);
