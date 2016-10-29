@@ -91,12 +91,13 @@ void bxo_gui_stop(QApplication*qapp)
   BXO_ASSERT(qapp != nullptr, "no qapp");
   auto theguihset = BXO_VARPREDEF(the_GUI)->dyncast_payload<BxoHashsetPayload>();
   {
-  auto pset = theguihset->vset().get_set();
-  BXO_VERBOSELOG("pset length=" << pset->length());
-  for (auto pob: *pset) {
-    pob->dyncast_payload<BxoMainWindowPayl>()->close();
-    pob->reset_payload();
-  }
+    auto pset = theguihset->vset().get_set();
+    BXO_VERBOSELOG("pset length=" << pset->length());
+    for (auto pob: *pset)
+      {
+        pob->dyncast_payload<BxoMainWindowPayl>()->close();
+        pob->reset_payload();
+      }
   }
   theguihset->clear();
   BXO_VERBOSELOG("bxo_gui_stop end");

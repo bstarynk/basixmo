@@ -543,16 +543,20 @@ class BxoVSet: public BxoVal
 {
 public:
   ~BxoVSet() = default;
+  inline BxoVSet(void);
   inline BxoVSet(const BxoSet&bs);
   inline BxoVSet(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>&);
+  inline BxoVSet(const std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr>&);
   inline BxoVSet(const std::vector<std::shared_ptr<BxoObject>>&);
   inline BxoVSet(const std::vector<BxoObject*>&);
   BxoVSet(std::initializer_list<std::shared_ptr<BxoObject>> il)
     : BxoVSet(std::vector<std::shared_ptr<BxoObject>>(il)) {};
   BxoVSet(std::initializer_list<BxoObject*>il)
     : BxoVSet(std::vector<BxoObject*>(il)) {};
-  template <typename... Args> BxoVSet(Args ... args)
-    : BxoVSet({args...}) {};
+  template <typename... Args> BxoVSet(BxoObject*obp, Args ... args)
+    : BxoVSet(std::initializer_list<BxoObject*> {obp, args...}) {};
+  template <typename... Args> BxoVSet(std::shared_ptr<BxoObject> pob, Args ... args)
+    : BxoVSet(std::initializer_list<std::shared_ptr<BxoObject>> {pob, args...}) {};
 };        // end BxoVSet
 
 class BxoVTuple: public BxoVal
@@ -560,14 +564,17 @@ class BxoVTuple: public BxoVal
 public:
   ~BxoVTuple() = default;
   inline BxoVTuple(const BxoTuple&);
+  inline BxoVTuple(void);
   BxoVTuple(const std::vector<std::shared_ptr<BxoObject>>&);
   BxoVTuple(const std::vector<BxoObject*>);
   BxoVTuple(std::initializer_list<std::shared_ptr<BxoObject>> il)
     : BxoVTuple(std::vector<std::shared_ptr<BxoObject>>(il)) {};
   BxoVTuple(std::initializer_list<BxoObject*>il)
     : BxoVTuple(std::vector<BxoObject*>(il)) {};
-  template <typename... Args> BxoVTuple(Args ... args)
-    : BxoVTuple({args...}) {};
+  template <typename... Args> BxoVTuple(std::shared_ptr<BxoObject> pob,Args ... args)
+    : BxoVTuple(std::initializer_list<std::shared_ptr<BxoObject>> {pob,args...}) {};
+  template <typename... Args> BxoVTuple(BxoObject*obp,Args ... args)
+    : BxoVTuple(std::initializer_list<BxoObject*> {obp,args...}) {};
 };        // end BxoVTuple
 
 
@@ -778,6 +785,7 @@ class BxoSet : public BxoSequence
   }
   static BxoSet the_empty_set;
   static const BxoSet*make_set(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>& bs);
+  static const BxoSet*make_set(const std::unordered_set<std::shared_ptr<BxoObject>, BxoHashObjSharedPtr>& uset);
   static const BxoSet*make_set(const std::vector<std::shared_ptr<BxoObject>> &vec);
   static const BxoSet*make_set(const std::vector<BxoObject*> &vec);
   BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObject> * seq)
@@ -1497,7 +1505,10 @@ public:
   {
     _payl.reset(new PaylClass(this, args...));
   }
-  void reset_payload() { _payl.reset(); };
+  void reset_payload()
+  {
+    _payl.reset();
+  };
 };        // end class BxoObject
 
 
@@ -1684,6 +1695,9 @@ BxoTuple::combine_hash(BxoHash_t h, const BxoObject&ob)
 BxoVSet::BxoVSet(const BxoSet&bs)
   : BxoVal(TagSet {},&bs) {}
 
+BxoVSet::BxoVSet(const std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr>&uset) :
+  BxoVal(TagSet {}, BxoSet::make_set(uset)) {}
+
 BxoVSet::BxoVSet(const std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr>& s)
   : BxoVal(TagSet {},BxoSet::make_set(s)) {}
 
@@ -1748,7 +1762,8 @@ public:
   {
     return pob && _hset.find(pob) != _hset.end();
   };
-  void clear(void) {
+  void clear(void)
+  {
     _hset.clear();
   }
 };        // end class BxoHashsetPayload

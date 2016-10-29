@@ -213,7 +213,7 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
             {
               auto pset = BxoSet::load_set(ld,jset);
               if (pset)
-                return BxoVSet(pset);
+                return BxoVSet(*pset);
             }
         }
       else if (js.isMember("tup"))
@@ -223,7 +223,7 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
             {
               auto ptup = BxoTuple::load_tuple(ld,jtup);
               if (ptup)
-                return BxoVTuple(ptup);
+                return BxoVTuple(*ptup);
             }
         }
     }
@@ -297,6 +297,14 @@ BxoSet::make_set(const std::vector<BxoObject*>&vecptr)
     }
   vec.resize(cnt);
   return make_set(vec);
+}
+
+const BxoSet*
+BxoSet::make_set(const std::unordered_set<std::shared_ptr<BxoObject>, BxoHashObjSharedPtr>& uset)
+{
+  std::set<std::shared_ptr<BxoObject>,BxoLessObjSharedPtr> oset;
+  for (auto pob: uset) if (pob) oset.insert(pob);
+  return make_set(oset);
 }
 
 const BxoSet*
