@@ -203,10 +203,10 @@ BxoLoader::set_globals(void)
 #define BXO_HAS_GLOBAL(Nam,Idstr,Hid,Loid,Hash) do {    \
     if (!BXO_VARGLOBAL(Nam))                            \
       BXO_VARGLOBAL(Nam) =                              \
-  BxoObject::load_objref(*this,#Idstr);                 \
+        BxoObject::load_objref(*this,#Idstr);           \
     BXO_ASSERT(BXO_VARGLOBAL(Nam)->hash() == Hash,      \
          "bad hash for " << #Nam);                      \
-} while(0)
+  } while(0);
 #include "_bxo_global.h"
 } // end of BxoLoader::set_globals
 

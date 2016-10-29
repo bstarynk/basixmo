@@ -147,30 +147,26 @@ bxoload_payload_assoval(BxoObject*obj,BxoLoader*ld)
 
 
 
-////////////////
-class BxoHashsetPayload final : public BxoPayload
+BxoHashsetPayload::BxoHashsetPayload(BxoObject& own)
+  : BxoPayload(own, PayloadTag {}),
+_hset() {};
+
+BxoHashsetPayload::~BxoHashsetPayload()
 {
-  std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> _hset;
-public:
-  virtual std::shared_ptr<BxoObject> kind_ob() const
-  {
-    return BXO_VARPREDEF(payload_hashset);
-  };
-  virtual std::shared_ptr<BxoObject> module_ob() const
-  {
-    return nullptr;
-  };
-  virtual void scan_payload_content(BxoDumper&) const;
-  virtual const BxoJson emit_payload_content(BxoDumper&) const;
-  virtual void load_payload_content(const BxoJson&, BxoLoader&);
-  BxoHashsetPayload(BxoObject& own)
-    : BxoPayload(own, PayloadTag {}),
-  _hset() {};
-  ~BxoHashsetPayload()
-  {
-    _hset.clear();
-  };
-};        // end class BxoHashsetPayload
+  _hset.clear();
+};
+
+std::shared_ptr<BxoObject>
+BxoHashsetPayload::kind_ob() const
+{
+  return BXO_VARPREDEF(payload_hashset);
+};        // end BxoHashsetPayload::kind_ob
+
+std::shared_ptr<BxoObject>
+BxoHashsetPayload::module_ob() const
+{
+  return nullptr;
+};        // end BxoHashsetPayload::kind_ob
 
 void
 BxoHashsetPayload::scan_payload_content(BxoDumper&du) const

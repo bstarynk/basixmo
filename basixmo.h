@@ -102,6 +102,7 @@ extern "C" int64_t bxo_prime_above(int64_t n);
 extern "C" int64_t bxo_prime_below(int64_t n);
 class QApplication;
 extern "C" void bxo_gui_init(QApplication*app);
+extern "C" void bxo_gui_stop(QApplication*app);
 
 // time measurement, in seconds
 // query a clock
@@ -1330,7 +1331,6 @@ public:
       _classob {nullptr},
              _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
-    BXO_VERBOSELOG("BxoObject Pseudo strid:"<< strid() << " @" << (void*)this);
   };
   BxoObject(LoadedTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
     : std::enable_shared_from_this<BxoObject>(),
@@ -1451,7 +1451,7 @@ public:
   {
     BxoObject* pob = make_object(sp);
     BXO_ASSERT (pob != nullptr, "make_object failed");
-    return pob->shared_from_this();
+    return std::shared_ptr<BxoObject> {pob};
   }
   static std::shared_ptr<BxoObject> load_objref(BxoLoader&ld, const std::string& idstr);
   void load_content(const BxoJson&, BxoLoader&);
@@ -1495,8 +1495,9 @@ public:
   }
   template <class PaylClass, typename... Args> void put_payload(Args... args)
   {
-    _payl = new PaylClass(this, args...);
+    _payl.reset(new PaylClass(this, args...));
   }
+  void reset_payload() { _payl.reset(); };
 };        // end class BxoObject
 
 
@@ -1719,4 +1720,37 @@ inline std::ostream& operator << (std::ostream& os, const BxoVal&v)
   v.out(os);
   return os;
 }
+////////////////
+class BxoHashsetPayload final : public BxoPayload
+{
+  std::unordered_set<std::shared_ptr<BxoObject>,BxoHashObjSharedPtr> _hset;
+public:
+  virtual std::shared_ptr<BxoObject> kind_ob() const;
+  virtual std::shared_ptr<BxoObject> module_ob() const;
+  virtual void scan_payload_content(BxoDumper&) const;
+  virtual const BxoJson emit_payload_content(BxoDumper&) const;
+  virtual void load_payload_content(const BxoJson&, BxoLoader&);
+  BxoHashsetPayload(BxoObject& own);
+  virtual ~BxoHashsetPayload();
+  void add(std::shared_ptr<BxoObject> pob)
+  {
+    if (pob) _hset.insert(pob);
+  };
+  void remove(std::shared_ptr<BxoObject> pob)
+  {
+    if (pob) _hset.erase(pob);
+  };
+  BxoVal vset() const
+  {
+    return BxoVSet(_hset);
+  };
+  bool contains(std::shared_ptr<BxoObject> pob) const
+  {
+    return pob && _hset.find(pob) != _hset.end();
+  };
+  void clear(void) {
+    _hset.clear();
+  }
+};        // end class BxoHashsetPayload
+
 #endif /*BASIXMO_HEADER*/
