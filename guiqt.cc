@@ -20,6 +20,11 @@
 #include <QObject>
 #include <QMainWindow>
 #include <QTextEdit>
+#include <QToolBar>
+#include <QMenuBar>
+#include <QApplication>
+#include <QMessageBox>
+#include <QCloseEvent>
 
 class BxoMainWindowPayl :public QMainWindow,  public BxoPayload
 {
@@ -51,6 +56,7 @@ public:
   {
     throw std::logic_error("BxoMainWindowPayl::scan_payload_content");
   };
+  virtual void closeEvent(QCloseEvent*ev);
 };        // end BxoMainWindowPayl
 
 
@@ -59,14 +65,64 @@ BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own):
 {
   _textedit = new QTextEdit;
   setCentralWidget(_textedit);
-}
+  auto mb = menuBar();
+  auto filemenu = mb->addMenu("&File");
+  filemenu->addAction("&Dump",[=]
+  {
+    if (BxoDumper::default_dump_dir().empty())
+      BxoDumper::set_default_dump_dir(".");
+    BXO_BACKTRACELOG("file dump into " << BxoDumper::default_dump_dir());
+    BxoDumper du(BxoDumper::default_dump_dir());
+    du.full_dump();
+    BXO_VERBOSELOG("done dump into " << BxoDumper::default_dump_dir());
+  });
+  filemenu->addAction("save and e&Xit",[=]
+  {
+    if (BxoDumper::default_dump_dir().empty())
+      BxoDumper::set_default_dump_dir(".");
+    BXO_BACKTRACELOG("save and exit file into " << BxoDumper::default_dump_dir());
+    BxoDumper du(BxoDumper::default_dump_dir());
+    du.full_dump();
+    QApplication::exit();
+    BXO_VERBOSELOG("done final dump into " << BxoDumper::default_dump_dir());
+  });
+  filemenu->addAction("&Quit",[=]
+  {
+    BXO_BACKTRACELOG("quit file without dump");
+    int ret = QMessageBox::question((QWidget*)this,
+    QString{"Quit?"},
+    QString{"Quit Basixmo (without dump)?"},
+    QMessageBox::Ok | QMessageBox::Cancel,
+    QMessageBox::Cancel);
+    if (ret == QMessageBox::Ok)
+      QApplication::exit();
+  });
+}/// end BxoMainWindowPayl::BxoMainWindowPayl
+
+void
+BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
+{
+  BXO_BACKTRACELOG("close main window owner=" << owner());
+  int ret = QMessageBox::question((QWidget*)this,
+                                  QString {"close and Quit?"},
+                                  QString {"close and Quit Basixmo (without dump)?"},
+                                  QMessageBox::Ok | QMessageBox::Cancel,
+                                  QMessageBox::Cancel);
+  if (ret == QMessageBox::Ok)
+    clev->accept();
+  else
+    clev->ignore();
+} // end BxoMainWindowPayl::closeEvent
+
 
 BxoMainWindowPayl::~BxoMainWindowPayl()
 {
   BXO_BACKTRACELOG("owner=" << owner());
   delete _textedit;
   _textedit = nullptr;
-}
+} // end BxoMainWindowPayl::~BxoMainWindowPayl
+
+
 // bxoglob_the_system
 void bxo_gui_init(QApplication*qapp)
 {
