@@ -42,6 +42,8 @@ protected:
   void fill_menu(void);
 public:
   BxoMainWindowPayl(BxoObject*own);
+  BxoMainWindowPayl(BxoObject*own, std::shared_ptr<BxoObject> grascenob);
+  BxoMainWindowPayl(BxoObject*own, BxoMainGraphicsScenePayl*grascenpayl);
   ~BxoMainWindowPayl();
   virtual std::shared_ptr<BxoObject> kind_ob() const
   {
@@ -70,15 +72,18 @@ public:
   virtual void closeEvent(QCloseEvent*ev);
 };        // end BxoMainWindowPayl
 
+
+
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
   friend class BxoMainWindowPayl;
   Q_OBJECT
+public:
   BxoMainGraphicsScenePayl(BxoObject*own);
   ~BxoMainGraphicsScenePayl();
   virtual std::shared_ptr<BxoObject> kind_ob() const
   {
-    return nullptr; //BXO_VARPREDEF(payload_main_graphics_scene);
+    return BXO_VARPREDEF(payload_main_graphics_scene);
   };
   virtual std::shared_ptr<BxoObject> module_ob() const
   {
@@ -139,15 +144,54 @@ BxoMainWindowPayl::fill_menu(void)
 
 
 
-BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own):
-  QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
+BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own)
+  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
 {
-  _graview = new QGraphicsView;
+  BxoMainGraphicsScenePayl*grscenpy = nullptr;
+  _grascenob = BxoObject::make_objref();
+  grscenpy = _grascenob->put_payload<BxoMainGraphicsScenePayl>();
+  _graview = new QGraphicsView(grscenpy);
   setCentralWidget(_graview);
   fill_menu();
 }/// end BxoMainWindowPayl::BxoMainWindowPayl
 
 
+
+BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own, std::shared_ptr<BxoObject> grascenob)
+  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
+{
+  BxoMainGraphicsScenePayl*grscenpy = nullptr;
+  if (!grascenob)
+    _grascenob = grascenob = BxoObject::make_objref();
+  if (!grascenob->payload())
+    grscenpy = _grascenob->put_payload<BxoMainGraphicsScenePayl>();
+  else if (!(grscenpy=grascenob->dyncast_payload<BxoMainGraphicsScenePayl>()))
+    {
+      BXO_BACKTRACELOG("BxoMainWindowPayl owned by " << own << " with bad grascenob " << grascenob
+                       << " of payload kind " << grascenob->payload()->kind_ob());
+      throw std::runtime_error("BxoMainWindowPayl with bad grascenob");
+    }
+  _grascenob = grascenob;
+  _graview = new QGraphicsView(grscenpy);
+  setCentralWidget(_graview);
+  fill_menu();
+
+} // end of BxoMainWindowPayl::BxoMainWindowPayl
+
+
+BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own, BxoMainGraphicsScenePayl*grascenpy)
+  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
+{
+  if (!grascenpy)
+    {
+      BXO_BACKTRACELOG("BxoMainWindowPayl no grascenpy owner=" << own);
+      throw std::runtime_error("BxoMainWindowPayl without grascenpy");
+    }
+  _grascenob.reset(grascenpy->owner());
+  _graview = new QGraphicsView(grascenpy);
+  setCentralWidget(_graview);
+  fill_menu();
+} // end of BxoMainWindowPayl::BxoMainWindowPayl
 
 void
 BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
@@ -190,6 +234,11 @@ BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
   BXO_BACKTRACELOG("owner=" << owner());
 } // end BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl
 
+
+BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl(BxoObject*own)
+  : QGraphicsScene(), BxoPayload(*own,PayloadTag {})
+{
+}
 
 
 // bxoglob_the_system

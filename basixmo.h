@@ -1501,9 +1501,11 @@ public:
       }
     return dp;
   }
-  template <class PaylClass, typename... Args> void put_payload(Args... args)
+  template <class PaylClass, typename... Args> PaylClass* put_payload(Args... args)
   {
-    _payl.reset(new PaylClass(this, args...));
+    auto py = new PaylClass(this, args...);
+    _payl.reset(py);
+    return py;
   }
   void reset_payload()
   {
