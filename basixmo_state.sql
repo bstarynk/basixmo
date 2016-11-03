@@ -1,4 +1,4 @@
--- basixmo_state.sql dump 2016 Oct 29 from basixmo_state.sqlite dumped by ./basixmo-dump-state.sh .....
+-- basixmo_state.sql dump 2016 Nov 03 from basixmo_state.sqlite dumped by /ssdhome/basile/basixmo/basixmo-dump-state.sh .....
 
  --   Copyright (C) 2016 Basile Starynkevitch.
  --  This sqlite3 dump file basixmo_state.sql is part of BASIXMO.
@@ -48,6 +48,17 @@ INSERT INTO "t_objects" VALUES('_0BV96V94PJIn9si1K',0,'{
    "system" : true
 }
 ','');
+INSERT INTO "t_objects" VALUES('_2A45sdKj6wkrVJIrv',1478171098,'{
+   "@name" : "payload_main_graphics_scene",
+   "attrs" : [
+      {
+         "at" : "_4xS1CSbRUFBW6PJiJ",
+         "va" : "main graphics scene transient payload"
+      }
+   ],
+   "comps" : []
+}
+','','','','');
 INSERT INTO "t_objects" VALUES('_8261sbF1f9ohzu2Iu',1473049630,'{
    "@name" : "payload_hashset",
    "attrs" : [
@@ -81,17 +92,6 @@ INSERT INTO "t_objects" VALUES('_4xS1CSbRUFBW6PJiJ',1472212346,'{
    "comps" : []
 }
 ','','','','');
-INSERT INTO "t_objects" VALUES('_5JG8lVw6jwlUT7PLK',1473050875,'{
-   "@name" : "payload_assoval",
-   "attrs" : [
-      {
-         "at" : "_4xS1CSbRUFBW6PJiJ",
-         "va" : "for assovaldata payload"
-      }
-   ],
-   "comps" : []
-}
-','','','','');
 INSERT INTO "t_objects" VALUES('_6Pc0DV2SCkMSiNlcf',1474462452,'{
    "@name" : "the_GUI",
    "attrs" : [
@@ -107,10 +107,22 @@ INSERT INTO "t_objects" VALUES('_6Pc0DV2SCkMSiNlcf',1474462452,'{
    "hashset" : []
 }
 ','');
+INSERT INTO "t_objects" VALUES('_5JG8lVw6jwlUT7PLK',1473050875,'{
+   "@name" : "payload_assoval",
+   "attrs" : [
+      {
+         "at" : "_4xS1CSbRUFBW6PJiJ",
+         "va" : "for assovaldata payload"
+      }
+   ],
+   "comps" : []
+}
+','','','','');
 CREATE TABLE t_names (nam_str PRIMARY KEY ASC NOT NULL UNIQUE, nam_oid  VARCHAR(20) NOT NULL UNIQUE);
 INSERT INTO "t_names" VALUES('comment','_4xS1CSbRUFBW6PJiJ');
 INSERT INTO "t_names" VALUES('payload_assoval','_5JG8lVw6jwlUT7PLK');
 INSERT INTO "t_names" VALUES('payload_hashset','_8261sbF1f9ohzu2Iu');
+INSERT INTO "t_names" VALUES('payload_main_graphics_scene','_2A45sdKj6wkrVJIrv');
 INSERT INTO "t_names" VALUES('payload_main_window','_6Yd83xiypqdhqcztq');
 INSERT INTO "t_names" VALUES('payload_system','_7yw2rDBxjs1XBu2ee');
 INSERT INTO "t_names" VALUES('the_GUI','_6Pc0DV2SCkMSiNlcf');

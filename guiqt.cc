@@ -20,16 +20,26 @@
 #include <QObject>
 #include <QMainWindow>
 #include <QTextEdit>
+#include <QGraphicsScene>
+#include <QGraphicsItem>
+#include <QGraphicsView>
 #include <QToolBar>
 #include <QMenuBar>
 #include <QApplication>
 #include <QMessageBox>
 #include <QCloseEvent>
 
+class BxoMainWindowPayl;
+class BxoMainGraphicsScenePayl;
+
 class BxoMainWindowPayl :public QMainWindow,  public BxoPayload
 {
+  friend class BxoMainGraphicsScenePayl;
   Q_OBJECT
-  QTextEdit *_textedit;
+  QGraphicsView* _graview;
+  std::shared_ptr<BxoObject> _grascenob;
+protected:
+  void fill_menu(void);
 public:
   BxoMainWindowPayl(BxoObject*own);
   ~BxoMainWindowPayl();
@@ -41,6 +51,7 @@ public:
   {
     return nullptr;
   };
+  inline std::shared_ptr<BxoObject> grascen_ob() const;
   /// actually, main window payloads are transient, because we don't
   /// define any bxoload_6Yd83xiypqdhqcztq function; so none of these
   /// functions would be called
@@ -59,12 +70,39 @@ public:
   virtual void closeEvent(QCloseEvent*ev);
 };        // end BxoMainWindowPayl
 
-
-BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own):
-  QMainWindow(), BxoPayload(*own,PayloadTag {}), _textedit(nullptr)
+class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
-  _textedit = new QTextEdit;
-  setCentralWidget(_textedit);
+  friend class BxoMainWindowPayl;
+  Q_OBJECT
+  BxoMainGraphicsScenePayl(BxoObject*own);
+  ~BxoMainGraphicsScenePayl();
+  virtual std::shared_ptr<BxoObject> kind_ob() const
+  {
+    return nullptr; //BXO_VARPREDEF(payload_main_graphics_scene);
+  };
+  virtual std::shared_ptr<BxoObject> module_ob() const
+  {
+    return nullptr;
+  };
+  /// actually, main graphics scene payloads are transient, so none of these
+  /// functions would be called
+  virtual void load_payload_content(const BxoJson&, BxoLoader&)
+  {
+    throw std::logic_error("BxoMainGraphicsScenePayl::load_payload_content");
+  }
+  virtual const BxoJson emit_payload_content(BxoDumper&) const
+  {
+    throw std::logic_error("BxoMainGraphicsScenePayl::emit_payload_content");
+  };
+  virtual void scan_payload_content(BxoDumper&) const
+  {
+    throw std::logic_error("BxoMainGraphicsScenePayl::scan_payload_content");
+  };
+};        // end BxoMainGraphicsScenePayl
+
+void
+BxoMainWindowPayl::fill_menu(void)
+{
   auto mb = menuBar();
   auto filemenu = mb->addMenu("&File");
   filemenu->addAction("&Dump",[=]
@@ -97,7 +135,19 @@ BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own):
     if (ret == QMessageBox::Ok)
       QApplication::exit();
   });
+} // end BxoMainWindowPayl::fill_menu
+
+
+
+BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own):
+  QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
+{
+  _graview = new QGraphicsView;
+  setCentralWidget(_graview);
+  fill_menu();
 }/// end BxoMainWindowPayl::BxoMainWindowPayl
+
+
 
 void
 BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
@@ -109,7 +159,10 @@ BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
                                   QMessageBox::Ok | QMessageBox::Cancel,
                                   QMessageBox::Cancel);
   if (ret == QMessageBox::Ok)
-    clev->accept();
+    {
+      clev->accept();
+      QMainWindow::closeEvent(clev);
+    }
   else
     clev->ignore();
 } // end BxoMainWindowPayl::closeEvent
@@ -118,9 +171,25 @@ BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
 BxoMainWindowPayl::~BxoMainWindowPayl()
 {
   BXO_BACKTRACELOG("owner=" << owner());
-  delete _textedit;
-  _textedit = nullptr;
+  delete _graview;
+  _graview = nullptr;
 } // end BxoMainWindowPayl::~BxoMainWindowPayl
+
+
+std::shared_ptr<BxoObject>
+BxoMainWindowPayl::grascen_ob() const
+{
+  if (_grascenob && _grascenob->dyncast_payload<BxoMainGraphicsScenePayl>())
+    return _grascenob;
+  else
+    return nullptr;
+}
+
+BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
+{
+  BXO_BACKTRACELOG("owner=" << owner());
+} // end BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl
+
 
 
 // bxoglob_the_system
@@ -148,7 +217,7 @@ void bxo_gui_stop(QApplication*qapp)
   auto theguihset = BXO_VARPREDEF(the_GUI)->dyncast_payload<BxoHashsetPayload>();
   {
     auto pset = theguihset->vset().get_set();
-    BXO_VERBOSELOG("pset length=" << pset->length());
+    BXO_VERBOSELOG("pset length=" << pset->length() << "; pset=" << pset);
     for (auto pob: *pset)
       {
         pob->dyncast_payload<BxoMainWindowPayl>()->close();
