@@ -23,6 +23,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsItem>
 #include <QGraphicsView>
+#include <QGraphicsLinearLayout>
+#include <QGraphicsLayoutItem>
 #include <QToolBar>
 #include <QMenuBar>
 #include <QApplication>
@@ -73,10 +75,26 @@ public:
 };        // end BxoMainWindowPayl
 
 
+class BxoShownObjectGroup : public QGraphicsItemGroup, public QGraphicsLinearLayout
+{
+  friend class BxoMainGraphicsScenePayl;
+  BxoObject* _shobj;
+  unsigned char _shdepth;
+public:
+  inline BxoMainGraphicsScenePayl*bxo_scene(void) const;
+  BxoShownObjectGroup(BxoObject*obj,unsigned depth) :
+    QGraphicsItemGroup(), _shobj(obj), _shdepth(depth) {};
+  virtual ~BxoShownObjectGroup() {};
+  BxoShownObjectGroup(const BxoShownObjectGroup&) = default;
+};        // end BxoShownObjectGroup
+
+
 
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
   friend class BxoMainWindowPayl;
+  std::map<std::shared_ptr<BxoObject>,BxoShownObjectGroup,BxoAlphaLessObjSharedPtr>
+  _shownobjmap;
   Q_OBJECT
 public:
   BxoMainGraphicsScenePayl(BxoObject*own);
@@ -228,6 +246,13 @@ BxoMainWindowPayl::grascen_ob() const
   else
     return nullptr;
 }
+
+
+BxoMainGraphicsScenePayl*
+BxoShownObjectGroup::bxo_scene(void) const
+{
+  return dynamic_cast<BxoMainGraphicsScenePayl*>(QGraphicsItem::scene());
+} // end BxoShownObjectGroup::bxo_scene
 
 BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
 {
