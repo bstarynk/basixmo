@@ -355,6 +355,11 @@ struct BxoLessObjSharedPtr
   inline bool operator() (const std::shared_ptr<BxoObject>&lp, const std::shared_ptr<BxoObject>&rp) const;
 };
 
+struct BxoAlphaLessObjSharedPtr
+{
+  inline bool operator() (const std::shared_ptr<BxoObject>&lp, const std::shared_ptr<BxoObject>&rp) const;
+};
+
 struct BxoLessObjPtr
 {
   inline bool operator() (const BxoObject*lp, const BxoObject*rp) const;
@@ -1384,6 +1389,7 @@ public:
     if (_hid < r._hid) return true;
     return _loid < r._loid;
   };
+  inline bool alpha_less(const BxoObject&r) const;
   bool less_equal(const BxoObject&r) const
   {
     if (this == &r) return true;
@@ -1515,6 +1521,23 @@ public:
 
 
 
+bool BxoObject::alpha_less(const BxoObject&r) const
+{
+  if (this == &r) return false;
+  {
+    auto tn = name();
+    auto rn = r.name();
+    if (!tn.empty())
+      {
+        if (rn.empty()) return true;
+        return tn < rn;
+      }
+    if (!rn.empty()) return false;
+  }
+  if (_hid >= r._hid) return false;
+  if (_hid < r._hid) return true;
+  return _loid < r._loid;
+};        // end BxoObject::alpha_less
 
 #define BXO_VARPREDEF(Nam) bxopredef_##Nam
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \
@@ -1597,6 +1620,17 @@ bool BxoLessObjSharedPtr::operator() (const std::shared_ptr<BxoObject>&lp, const
     };
   if (!rp) return false;
   return lp->less(*rp);
+}
+
+
+bool BxoAlphaLessObjSharedPtr::operator() (const std::shared_ptr<BxoObject>&lp, const std::shared_ptr<BxoObject>&rp) const
+{
+  if (!lp)
+    {
+      return !rp;
+    };
+  if (!rp) return false;
+  return lp->alpha_less(*rp);
 }
 
 bool BxoLessObjPtr::operator() (const BxoObject*lp, const BxoObject*rp) const
