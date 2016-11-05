@@ -75,16 +75,16 @@ public:
 };        // end BxoMainWindowPayl
 
 
-class BxoShownObjectGroup : public QGraphicsItemGroup, public QGraphicsLinearLayout
+class BxoShownObjectGroup : public QGraphicsItemGroup, public QGraphicsLinearLayout, public QGraphicsLayoutItem
 {
   friend class BxoMainGraphicsScenePayl;
   BxoObject* _shobj;
-  unsigned char _shdepth;
 public:
   inline BxoMainGraphicsScenePayl*bxo_scene(void) const;
-  BxoShownObjectGroup(BxoObject*obj,unsigned depth) :
-    QGraphicsItemGroup(), _shobj(obj), _shdepth(depth) {};
+  BxoShownObjectGroup(BxoObject*obj) :
+    QGraphicsItemGroup(), QGraphicsLinearLayout(),  QGraphicsLayoutItem(), _shobj(obj) {};
   virtual ~BxoShownObjectGroup() {};
+  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
   BxoShownObjectGroup(const BxoShownObjectGroup&) = default;
 };        // end BxoShownObjectGroup
 
@@ -95,6 +95,7 @@ class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
   friend class BxoMainWindowPayl;
   std::map<std::shared_ptr<BxoObject>,BxoShownObjectGroup,BxoAlphaLessObjSharedPtr>
   _shownobjmap;
+  QGraphicsLinearLayout _layout;
   Q_OBJECT
 public:
   BxoMainGraphicsScenePayl(BxoObject*own);
@@ -261,7 +262,8 @@ BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
 
 
 BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl(BxoObject*own)
-  : QGraphicsScene(), BxoPayload(*own,PayloadTag {})
+  : QGraphicsScene(), BxoPayload(*own,PayloadTag {}),
+_shownobjmap(), _layout(Qt::Vertical)
 {
 }
 
