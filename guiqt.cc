@@ -75,7 +75,8 @@ public:
 };        // end BxoMainWindowPayl
 
 
-class BxoShownObjectGroup : public QGraphicsItemGroup, public QGraphicsLinearLayout, public QGraphicsLayoutItem
+class BxoShownObjectGroup
+  : public QGraphicsItemGroup, public QGraphicsLinearLayout, public QGraphicsLayoutItem
 {
   friend class BxoMainGraphicsScenePayl;
   BxoObject* _shobj;
@@ -247,6 +248,13 @@ BxoMainWindowPayl::grascen_ob() const
   else
     return nullptr;
 }
+
+
+QSizeF
+BxoShownObjectGroup::sizeHint(Qt::SizeHint which, const QSizeF &constraint) const
+{
+  return QGraphicsLinearLayout::sizeHint(which, constraint);
+} // end of  BxoShownObjectGroup::sizeHint
 
 
 BxoMainGraphicsScenePayl*
