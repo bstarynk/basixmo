@@ -76,14 +76,22 @@ public:
 
 
 class BxoShownObjectGroup
-  : public QGraphicsItemGroup, public QGraphicsLinearLayout, public QGraphicsLayoutItem
+  : public QGraphicsItemGroup, public QGraphicsLinearLayout
 {
   friend class BxoMainGraphicsScenePayl;
-  BxoObject* _shobj;
+  std::shared_ptr<BxoObject> _shobj;
+  int _depth;
+  /// we probably need a title layout, an attribute layout,
+  /// a component layout, a payload layout
+protected:
+  BxoShownObjectGroup(BxoObject*obj, int depth) :
+    QGraphicsItemGroup(), QGraphicsLinearLayout(Qt::Vertical),
+    _shobj(obj), _depth(depth)
+  {
+  };
 public:
+  static BxoShownObjectGroup* make(BxoObject*obj,int depth);
   inline BxoMainGraphicsScenePayl*bxo_scene(void) const;
-  BxoShownObjectGroup(BxoObject*obj) :
-    QGraphicsItemGroup(), QGraphicsLinearLayout(),  QGraphicsLayoutItem(), _shobj(obj) {};
   virtual ~BxoShownObjectGroup() {};
   virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
   BxoShownObjectGroup(const BxoShownObjectGroup&) = default;
