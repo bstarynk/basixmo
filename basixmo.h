@@ -427,6 +427,10 @@ protected:
   inline BxoVal(TagSet, const BxoSet*pset);
   inline BxoVal(TagTuple, const BxoTuple*ptup);
 public:
+  BxoVKind kind() const
+  {
+    return _kind;
+  };
   BxoVal() : BxoVal(TagNone {}, nullptr) {};
   BxoVal(std::nullptr_t) : BxoVal(TagNone {}, nullptr) {};
   inline BxoVal(const BxoVal&v);

@@ -97,7 +97,6 @@ public:
   BxoShownObjectGroup(const BxoShownObjectGroup&) = default;
 };        // end BxoShownObjectGroup
 
-#warning perhaps we need some abstract BxoGitemValue class
 
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
@@ -138,6 +137,8 @@ public:
     throw std::logic_error("BxoMainGraphicsScenePayl::scan_payload_content");
   };
 };        // end BxoMainGraphicsScenePayl
+
+
 
 void
 BxoMainWindowPayl::fill_menu(void)
@@ -293,7 +294,33 @@ _shownobjmap(), _layout(Qt::Vertical)
 QGraphicsItem*
 BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
 {
+  switch (val.kind())
+    {
+    case BxoVKind::NoneK:
+    {
+      QBrush qb;
+      qb.setColor(Qt::darkMagenta);
+      auto qit = new QGraphicsSimpleTextItem("~");
+      qit->setFont(QFont("Courier Bold 12"));
+      qit->setBrush(qb);
+      return qit;
+    }
+    case BxoVKind::IntK:
+    {
+      char intbuf[32];
+      memset (intbuf, 0, sizeof(intbuf));
+      snprintf(intbuf, sizeof(intbuf), "%lld", (long long)val.as_int());
+      QBrush qb;
+      qb.setColor(Qt::darkGreen);
+      auto qit = new QGraphicsSimpleTextItem(intbuf);
+      qit->setFont(QFont("Courier Bold 12"));
+      qit->setBrush(qb);
+      return qit;
+    }
+    }
 } // end  BxoMainGraphicsScenePayl::value_gitem
+
+
 
 QGraphicsItem*
 BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown)
