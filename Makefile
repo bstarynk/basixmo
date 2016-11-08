@@ -59,16 +59,18 @@ bxmo: $(OBJECTS) _timestamp.o
 
 # we want Foo.o to conditionally depend upon Foo.moc.h iff Foo.cc
 # contains Foo.moc.h
-%.o: %.cc basixmo.h $(GENERATED_HEADERS) $(shell grep -q .$(patsubst %.cc,%.moc.h,$<) $< /dev/null && echo $(patsubst %.cc,%.moc.h,$<))
-#	echo '$$<=' $< '$$(patsubst %.cc,%.moc.h,$$<)=' $(patsubst %.cc,%.moc.h,$<)
+%.o: %.cc basixmo.h  $(shell grep -q "$(patsubst %.cc,%.moc.h,$<)" $< /dev/null && echo $(patsubst %.cc,%.moc.h,$<)) $(GENERATED_HEADERS) 
+	@echo '$$<=' $< '$$(patsubst %.cc,%.moc.h,$$<)=' $(patsubst %.cc,%.moc.h,$<) '$$^=' $^ mocdep=  $(shell grep -q "$(patsubst %.cc,%.moc.h,$<)" $< /dev/null && echo $(patsubst %.cc,%.moc.h,$<))
 # implicitly COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c & OUTPUT_OPTION = -o $@
 	$(CXX)  $(CXXFLAGS) $(CPPFLAGS)  -MF $(patsubst %.cc,_%.mkd,$<) -MT $@ -MMD  $(TARGET_ARCH) -c -o $@ $< 
 
 %.moc.h: %.cc
 	$(QTMOC) -o $@ $<
 
+
 clean:
 	$(RM) *~ *% *.o *.so */*.so *.log */*~ */*.orig *.i *.ii *.orig README.html *#
+	$(RM) *.moc.h
 	$(RM) _*.mkd
 	$(RM) core*
 	$(RM) _timestamp.* bxmo
