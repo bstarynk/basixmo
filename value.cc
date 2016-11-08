@@ -227,7 +227,6 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
             }
         }
     }
-#warning incomplete BxoVal::from_json
     }
   BXO_BACKTRACELOG("BxoVal::from_json: bad json " << js);
   throw std::runtime_error("BxoVal::from_json: bad json");
