@@ -232,6 +232,7 @@ main (int argc_main, char **argv_main)
   BxoObject::initialize_predefined_objects();
   QCoreApplication* app = nogui?new QCoreApplication(argc_main, argv_main):new QApplication(argc_main, argv_main);
   app->setApplicationName("Basixmo");
+  app->setOrganizationName("gcc-melt.org");
   app->setApplicationVersion(basixmo_lastgitcommit);
   QCommandLineParser cmdlinparser;
   cmdlinparser.setApplicationDescription("Basile's Experimental Monitor");

@@ -19,6 +19,7 @@
 #include "basixmo.h"
 #include <QObject>
 #include <QMainWindow>
+#include <QSettings>
 #include <QTextEdit>
 #include <QGraphicsScene>
 #include <QGraphicsItem>
@@ -105,7 +106,17 @@ class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
   _shownobjmap;
   QGraphicsLinearLayout _layout;
   Q_OBJECT
+  static std::unique_ptr<QBrush> _nilbrush_;
+  static std::unique_ptr<QFont> _nilfont_;
+  static std::unique_ptr<QBrush> _intbrush_;
+  static std::unique_ptr<QFont> _intfont_;
+  static std::unique_ptr<QBrush> _smallstringbrush_;
+  static std::unique_ptr<QFont> _smallstringfont_;
+  static std::unique_ptr<QColor> _bigstringcolor_;
+  static std::unique_ptr<QFont> _bigstringfont_;
 public:
+  static void initialize(QApplication*);
+  static void finalize(QApplication*);
   BxoMainGraphicsScenePayl(BxoObject*own);
   ~BxoMainGraphicsScenePayl();
   bool is_shown_objref(const std::shared_ptr<BxoObject>pob) const
@@ -290,6 +301,48 @@ _shownobjmap(), _layout(Qt::Vertical)
 {
 }
 
+std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_nilbrush_;
+std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_nilfont_;
+std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_intbrush_;
+std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_intfont_;
+std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_smallstringbrush_;
+std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_smallstringfont_;
+std::unique_ptr<QColor> BxoMainGraphicsScenePayl::_bigstringcolor_;
+std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_bigstringfont_;
+
+void
+BxoMainGraphicsScenePayl::initialize(QApplication*qapp)
+{
+  BXO_ASSERT(qapp, "missing application");
+  QSettings settings;
+  _nilbrush_.reset(new QBrush(QColor(settings.value("scene/nilcolor", "Navy").toString())));
+  _nilfont_.reset(new QFont(settings.value("scene/nilfont","Courier Bold 12").toString()));
+  _intbrush_.reset(new QBrush(QColor(settings.value("scene/intcolor", "DarkGreen").toString())));
+  _intfont_.reset(new QFont(settings.value("scene/intfont","Courier 12").toString()));
+  _smallstringbrush_.reset(new QBrush(QColor(settings.value("scene/smallstringcolor", "Firerick").toString())));
+  _smallstringfont_.reset(new QFont(settings.value("scene/smallstringfont","Andale Mono 11").toString()));
+  _bigstringcolor_.reset(new QColor(settings.value("scene/bigstringcolor", "Peru").toString()));
+  _bigstringfont_.reset(new QFont(settings.value("scene/bigstringfont","Andale Mono 11").toString()));
+
+} // end BxoMainGraphicsScenePayl::initialize
+
+
+
+void
+BxoMainGraphicsScenePayl::finalize(QApplication*qapp)
+{
+  BXO_ASSERT(qapp, "missing application");
+  _nilbrush_.reset();
+  _nilfont_.reset();
+  _intbrush_.reset();
+  _intfont_.reset();
+  _smallstringfont_.reset();
+  _smallstringbrush_.reset();
+  _bigstringfont_.reset();
+  _bigstringcolor_.reset();
+} // end of BxoMainGraphicsScenePayl::finalize
+
+
 
 QGraphicsItem*
 BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
@@ -298,11 +351,9 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
     {
     case BxoVKind::NoneK:
     {
-      QBrush qb;
-      qb.setColor(Qt::darkMagenta);
       auto qit = new QGraphicsSimpleTextItem("~");
-      qit->setFont(QFont("Courier Bold 12"));
-      qit->setBrush(qb);
+      qit->setFont(*_nilfont_);
+      qit->setBrush(*_nilbrush_);
       return qit;
     }
     case BxoVKind::IntK:
@@ -310,12 +361,29 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
       char intbuf[32];
       memset (intbuf, 0, sizeof(intbuf));
       snprintf(intbuf, sizeof(intbuf), "%lld", (long long)val.as_int());
-      QBrush qb;
-      qb.setColor(Qt::darkGreen);
       auto qit = new QGraphicsSimpleTextItem(intbuf);
-      qit->setFont(QFont("Courier Bold 12"));
-      qit->setBrush(qb);
+      qit->setFont(*_intfont_);
+      qit->setBrush(*_intbrush_);
       return qit;
+    }
+    case BxoVKind::StringK:
+    {
+      constexpr const unsigned smallstringlength = 64;
+      auto str = val.as_string();
+      if (str.size() < smallstringlength)
+        {
+          auto qit = new QGraphicsSimpleTextItem(str.c_str());
+          qit->setFont(*_smallstringfont_);
+          qit->setBrush(*_smallstringbrush_);
+          return qit;
+        }
+      else  //big string
+        {
+          auto qit = new QGraphicsTextItem(str.c_str());
+          qit->setFont(*_bigstringfont_);
+          qit->setDefaultTextColor(*_bigstringcolor_);
+          return qit;
+        }
     }
     }
 } // end  BxoMainGraphicsScenePayl::value_gitem
@@ -336,6 +404,7 @@ void bxo_gui_init(QApplication*qapp)
 {
   BXO_ASSERT(qapp != nullptr, "no QApplication");
   BXO_BACKTRACELOG("bxo_gui_init start");
+  BxoMainGraphicsScenePayl::initialize(qapp);
   auto mainwinob = BxoObject::make_objref();
   BXO_VERBOSELOG("empty mainwinob=" << mainwinob);
   mainwinob->put_payload<BxoMainWindowPayl>();
@@ -364,6 +433,7 @@ void bxo_gui_stop(QApplication*qapp)
       }
   }
   theguihset->clear();
+  BxoMainGraphicsScenePayl::finalize(qapp);
   BXO_VERBOSELOG("bxo_gui_stop end");
 } // end bxo_gui_stop
 
