@@ -97,7 +97,7 @@ public:
   BxoShownObjectGroup(const BxoShownObjectGroup&) = default;
 };        // end BxoShownObjectGroup
 
-
+#warning perhaps we need some abstract BxoGitemValue class
 
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
@@ -109,6 +109,10 @@ class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 public:
   BxoMainGraphicsScenePayl(BxoObject*own);
   ~BxoMainGraphicsScenePayl();
+  bool is_shown_objref(const std::shared_ptr<BxoObject>pob) const
+  {
+    return pob && _shownobjmap.find(pob) != _shownobjmap.end();
+  }
   virtual std::shared_ptr<BxoObject> kind_ob() const
   {
     return BXO_VARPREDEF(payload_main_graphics_scene);
@@ -117,6 +121,8 @@ public:
   {
     return nullptr;
   };
+  QGraphicsItem* value_gitem(const BxoVal&val, int depth);
+  QGraphicsItem* objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown);
   /// actually, main graphics scene payloads are transient, so none of these
   /// functions would be called
   virtual void load_payload_content(const BxoJson&, BxoLoader&)
@@ -283,6 +289,20 @@ _shownobjmap(), _layout(Qt::Vertical)
 {
 }
 
+
+QGraphicsItem*
+BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
+{
+} // end  BxoMainGraphicsScenePayl::value_gitem
+
+QGraphicsItem*
+BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown)
+{
+  BXO_ASSERT(pob != nullptr, "objref_gitem: no pob");
+  if (depth <= 0 || is_shown_objref(pob))
+    {
+    }
+} // end  BxoMainGraphicsScenePayl::objref_gitem
 
 // bxoglob_the_system
 void bxo_gui_init(QApplication*qapp)
