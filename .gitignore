@@ -3,6 +3,7 @@
 *~
 *%
 *.gch
+*.bak
 *.pch
 bxmo
 *.so
@@ -15,4 +16,5 @@ core
 _timestamp.c
 _BxoDumpTimeStamp
 _*.mkd
+_mocdepend.mk
 *.moc.h

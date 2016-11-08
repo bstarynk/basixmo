@@ -57,12 +57,13 @@ bxmo: $(OBJECTS) _timestamp.o
 	@if [ -f $@ ]; then echo -n makebackup old executable: ' ' ; mv -v $@ $@~ ; fi
 	$(LINK.cc)  $(LINKFLAGS) $(OPTIMFLAGS) -rdynamic $(OBJECTS)  _timestamp.o $(LIBES) -o $@ 
 
-# we want Foo.o to conditionally depend upon Foo.moc.h iff Foo.cc
-# contains Foo.moc.h
-%.o: %.cc basixmo.h  $(shell grep -q "$(patsubst %.cc,%.moc.h,$<)" $< /dev/null && echo $(patsubst %.cc,%.moc.h,$<)) $(GENERATED_HEADERS) 
-	@echo '$$<=' $< '$$(patsubst %.cc,%.moc.h,$$<)=' $(patsubst %.cc,%.moc.h,$<) '$$^=' $^ mocdep=  $(shell grep -q "$(patsubst %.cc,%.moc.h,$<)" $< /dev/null && echo $(patsubst %.cc,%.moc.h,$<))
+%.o: %.cc basixmo.h $(GENERATED_HEADERS) 
 # implicitly COMPILE.cc = $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c & OUTPUT_OPTION = -o $@
-	$(CXX)  $(CXXFLAGS) $(CPPFLAGS)  -MF $(patsubst %.cc,_%.mkd,$<) -MT $@ -MMD  $(TARGET_ARCH) -c -o $@ $< 
+	$(CXX)  $(CXXFLAGS) $(CPPFLAGS)  -MF $(patsubst %.cc,_%.mkd,$<) -MT $@ -MMD  $(TARGET_ARCH) -c -o $@ $<
+
+
+%.ii: %.cc basixmo.h $(GENERATED_HEADERS)
+	$(COMPILE.cc) -C -E $< -o -  | sed s:^#://#:g > $@
 
 %.moc.h: %.cc
 	$(QTMOC) -o $@ $<
@@ -71,7 +72,7 @@ bxmo: $(OBJECTS) _timestamp.o
 clean:
 	$(RM) *~ *% *.o *.so */*.so *.log */*~ */*.orig *.i *.ii *.orig README.html *#
 	$(RM) *.moc.h
-	$(RM) _*.mkd
+	$(RM) _*.mkd _mocdepend.mk
 	$(RM) core*
 	$(RM) _timestamp.* bxmo
 
@@ -104,7 +105,17 @@ indent:
 	done
 
 
-%.ii: %.cc basixmo.h $(GENERATED_HEADERS)
-	$(COMPILE.cc) -C -E $< -o -  | sed s:^#://#:g > $@
+_mocdepend.mk: | $(CXXSOURCES)
+	date +"#$< generated _mocdepend.mk %c%n" > _mocdepend.tmp
+	for f in $(CXXSOURCES) ; do				\
+	  b=$$(basename $$f .cc) ;				\
+	  m=$$b.moc.h ;						\
+	  grep -q "$$m" $$f					\
+	     && printf "%s: %s\n" $$b.o $$m >> _mocdepend.tmp ;	\
+	  true ; \
+	done
+	echo '#eof ' $@ >> _mocdepend.tmp
+	mv _mocdepend.tmp _mocdepend.mk
 
+include _mocdepend.mk
 -include $(wildcard _*.mkd)
