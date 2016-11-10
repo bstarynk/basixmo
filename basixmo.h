@@ -1333,8 +1333,14 @@ public:
   inline bool has_attr(const std::shared_ptr<BxoObject> pobat) const;
   inline BxoVal get_attr(const std::shared_ptr<BxoObject> pobat) const;
   inline BxoVal get_comp(int rk) const;
-  unsigned nb_attrs() const { return _attrh.size(); };
-  unsigned nb_comps() const { return _compv.size(); };
+  unsigned nb_attrs() const
+  {
+    return _attrh.size();
+  };
+  unsigned nb_comps() const
+  {
+    return _compv.size();
+  };
   BxoSpace space() const
   {
     return _space;
@@ -1443,7 +1449,8 @@ public:
   {
     return find_named_objref(str).get();
   }
-  bool is_named(void) const {
+  bool is_named(void) const
+  {
     return _namemap_.find(const_cast<BxoObject*>(this)) != _namemap_.end();
   }
   std::string name(void) const
@@ -1574,7 +1581,8 @@ BxoObject::get_attr(const std::shared_ptr<BxoObject> pobat) const
 
 
 BxoVal
-BxoObject::get_comp(int rk) const {
+BxoObject::get_comp(int rk) const
+{
   auto nbc = nb_comps();
   if (rk<0) rk += nbc;
   if (rk<0 || rk>=(int)nbc) return nullptr;

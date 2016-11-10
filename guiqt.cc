@@ -98,12 +98,14 @@ public:
   BxoShownObjectGroup(const BxoShownObjectGroup&) = default;
 };        // end BxoShownObjectGroup
 
-
+class BxoAnyObjrefShow;
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
   friend class BxoMainWindowPayl;
+  friend class BxoAnyObjrefShow;
   std::map<std::shared_ptr<BxoObject>,BxoShownObjectGroup,BxoAlphaLessObjSharedPtr>
   _shownobjmap;
+  std::unordered_multimap<std::shared_ptr<BxoObject>,BxoAnyObjrefShow*,BxoHashObjSharedPtr> _objoccmultimap;
   QGraphicsLinearLayout _layout;
   Q_OBJECT
   static std::unique_ptr<QBrush> _nilbrush_;
@@ -136,9 +138,9 @@ public:
   // display an object, possibly with its internal content;
   // *pshowncontent would be set to true if the content is shown at
   // this occurrence
-  QGraphicsItem* objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshowncontent =nullptr);
+  BxoAnyObjrefShow* objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshowncontent =nullptr);
   // display an object and its content
-  QGraphicsItem* objcontent_gitem(BxoObject*obp, int depth);
+  BxoAnyObjrefShow* objcontent_gitem(BxoObject*obp, int depth);
   /// actually, main graphics scene payloads are transient, so none of these
   /// functions would be called
   virtual void load_payload_content(const BxoJson&, BxoLoader&)
@@ -156,6 +158,86 @@ public:
 };        // end BxoMainGraphicsScenePayl
 
 
+class BxoAnyObjrefShow
+{
+  BxoObject* _obp;
+  BxoMainGraphicsScenePayl* _grascen;
+protected:
+  BxoAnyObjrefShow(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
+    : _obp(obp), _grascen(grascen)
+  {
+    BXO_ASSERT(obp, "missing pob");
+    BXO_ASSERT(grascen, "missing grascen");
+  };
+  BxoAnyObjrefShow(const BxoAnyObjrefShow&) = delete;
+  BxoAnyObjrefShow(BxoAnyObjrefShow&&) = delete;
+public:
+  BxoObject* obptr() const
+  {
+    return _obp;
+  };
+  BxoMainGraphicsScenePayl* grascen() const
+  {
+    return _grascen;
+  };
+  virtual void hilight(bool on) =0;
+  virtual QGraphicsItem* gitem() const=0;
+  virtual ~BxoAnyObjrefShow()
+  {
+    _obp=nullptr;
+    _grascen=nullptr;
+  };
+};        // end of BxoAnyObjrefShow
+
+
+// named object reference show
+class BxoNamedObjrefShow final : public BxoAnyObjrefShow
+{
+  QGraphicsSimpleTextItem _gitem;
+  BxoNamedObjrefShow(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
+    : BxoAnyObjrefShow(obp,grascen),
+      _gitem (obp->name().c_str())
+  {
+  };
+public:
+  virtual QGraphicsItem* gitem() const
+  {
+    return const_cast<QGraphicsSimpleTextItem*>(&_gitem);
+  };
+  virtual ~BxoNamedObjrefShow() {};
+  virtual void hilight(bool on);
+  static BxoAnyObjrefShow*make(BxoObject*obp, BxoMainGraphicsScenePayl* grascen);
+};        // end of BxoNamedObjrefShow
+
+// anonymous uncommented object reference show
+class BxoAnonObjrefShow final : public BxoAnyObjrefShow
+{
+  QGraphicsSimpleTextItem _gitem;
+  BxoAnonObjrefShow(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
+    : BxoAnyObjrefShow(obp,grascen),
+      _gitem (obp->strid().c_str())
+  {
+  };
+public:
+  virtual QGraphicsItem* gitem() const
+  {
+    return const_cast<QGraphicsSimpleTextItem*>(&_gitem);
+  };
+  virtual ~BxoAnonObjrefShow() {};
+  virtual void hilight(bool on);
+  static BxoAnyObjrefShow*make(BxoObject*obp, BxoMainGraphicsScenePayl* grascen);
+};        // end of class BxoAnonObjrefShow
+
+
+/// commented object reference show
+class BxoCommentedObjrefShow : public BxoAnyObjrefShow
+{
+public:
+  virtual QGraphicsItem* gitem() const /* { return const_cast<QGraphicsSimpleTextItem*>(&_gitem); }*/;
+  virtual ~BxoCommentedObjrefShow() {};
+  virtual void hilight(bool on);
+  static BxoAnyObjrefShow*make(BxoObject*obp, const std::string& comment, BxoMainGraphicsScenePayl* grascen);
+}; // end class BxoCommentedObjrefShow
 
 void
 BxoMainWindowPayl::fill_menu(void)
@@ -305,7 +387,7 @@ BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl(BxoObject*own)
   : QGraphicsScene(), BxoPayload(*own,PayloadTag {}),
 _shownobjmap(), _layout(Qt::Vertical)
 {
-}
+} // end BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl
 
 std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_nilbrush_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_nilfont_;
@@ -388,8 +470,8 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
           auto qit = new QGraphicsTextItem(str.c_str());
           qit->setFont(*_bigstringfont_);
           qit->setDefaultTextColor(*_bigstringcolor_);
-	  QFontMetrics fm(*_bigstringfont_);
-	  qit->setTextWidth(fm.averageCharWidth()*4*smallstringlength/3);
+          QFontMetrics fm(*_bigstringfont_);
+          qit->setTextWidth(fm.averageCharWidth()*4*smallstringlength/3);
           return qit;
         }
     }
@@ -399,7 +481,7 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
 
 
 
-QGraphicsItem*
+BxoAnyObjrefShow*
 BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown)
 {
   BXO_ASSERT(pob != nullptr, "objref_gitem: no pob");
@@ -409,20 +491,23 @@ BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int 
   else if (depth <= 0 || is_shown_objref(pob))
     {
       auto comstr = pob->get_attr(BXO_VARPREDEF(comment)).to_string();
-      if (comstr.empty()) {
-      }
-      else {
-      }
+      if (comstr.empty())
+        {
+        }
+      else
+        {
+        }
     }
-  else {
-    if (pshown) *pshown = true;
-    return objcontent_gitem(pob.get(), depth);
-  }
+  else
+    {
+      if (pshown) *pshown = true;
+      return objcontent_gitem(pob.get(), depth);
+    }
 } // end  BxoMainGraphicsScenePayl::objref_gitem
 
 
 
-QGraphicsItem*
+BxoAnyObjrefShow*
 BxoMainGraphicsScenePayl::objcontent_gitem(BxoObject*obp, int depth)
 {
   BXO_ASSERT(obp != nullptr, "no obp");
