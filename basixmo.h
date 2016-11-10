@@ -262,6 +262,7 @@ public:
   BxoGplv3LicenseOut(BxoGplv3LicenseOut&&) = default;
 };        // end of BxoGplv3LicenseOut
 
+
 inline std::ostream& operator << (std::ostream& os, const BxoGplv3LicenseOut& bo)
 {
   bo.out(os);
@@ -1299,6 +1300,9 @@ class BxoPayload;
 #define BXO_HID_BUCKETMAX 36000
 #define BXO_MAX_NAME_LEN 1024
 
+
+
+////////////////////////////////////////////////////////////////
 class BxoObject: public std::enable_shared_from_this<BxoObject>
 {
   friend class BxoVal;
@@ -1326,6 +1330,11 @@ class BxoObject: public std::enable_shared_from_this<BxoObject>
     _bucketarr_[hi_id_bucketnum(pob->_hid)].insert(pob);
   }
 public:
+  inline bool has_attr(const std::shared_ptr<BxoObject> pobat) const;
+  inline BxoVal get_attr(const std::shared_ptr<BxoObject> pobat) const;
+  inline BxoVal get_comp(int rk) const;
+  unsigned nb_attrs() const { return _attrh.size(); };
+  unsigned nb_comps() const { return _compv.size(); };
   BxoSpace space() const
   {
     return _space;
@@ -1433,6 +1442,9 @@ public:
   static BxoObject*find_named_objptr(const std::string&str)
   {
     return find_named_objref(str).get();
+  }
+  bool is_named(void) const {
+    return _namemap_.find(const_cast<BxoObject*>(this)) != _namemap_.end();
   }
   std::string name(void) const
   {
@@ -1542,6 +1554,32 @@ bool BxoObject::alpha_less(const BxoObject&r) const
   if (_hid < r._hid) return true;
   return _loid < r._loid;
 };        // end BxoObject::alpha_less
+
+
+bool
+BxoObject::has_attr(const std::shared_ptr<BxoObject> pobat) const
+{
+  if (!pobat) return false;
+  return _attrh.find(pobat) != _attrh.end();
+} // end of BxoObject::has_attr
+
+BxoVal
+BxoObject::get_attr(const std::shared_ptr<BxoObject> pobat) const
+{
+  if (!pobat) return nullptr;
+  auto pit = _attrh.find(pobat);
+  if (pit == _attrh.end()) return nullptr;
+  return pit->second;
+} // end of BxoObject::get_attr
+
+
+BxoVal
+BxoObject::get_comp(int rk) const {
+  auto nbc = nb_comps();
+  if (rk<0) rk += nbc;
+  if (rk<0 || rk>=(int)nbc) return nullptr;
+  return _compv[rk];
+} // end of BxoObject::get_comp
 
 #define BXO_VARPREDEF(Nam) bxopredef_##Nam
 #define BXO_HAS_PREDEFINED(Name,Idstr,Hid,Loid,Hash) \

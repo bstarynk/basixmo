@@ -114,6 +114,7 @@ class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
   static std::unique_ptr<QFont> _smallstringfont_;
   static std::unique_ptr<QColor> _bigstringcolor_;
   static std::unique_ptr<QFont> _bigstringfont_;
+#warning we need to keep a map from object to their graphicitems occurrence
 public:
   static void initialize(QApplication*);
   static void finalize(QApplication*);
@@ -132,7 +133,12 @@ public:
     return nullptr;
   };
   QGraphicsItem* value_gitem(const BxoVal&val, int depth);
-  QGraphicsItem* objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown);
+  // display an object, possibly with its internal content;
+  // *pshowncontent would be set to true if the content is shown at
+  // this occurrence
+  QGraphicsItem* objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshowncontent =nullptr);
+  // display an object and its content
+  QGraphicsItem* objcontent_gitem(BxoObject*obp, int depth);
   /// actually, main graphics scene payloads are transient, so none of these
   /// functions would be called
   virtual void load_payload_content(const BxoJson&, BxoLoader&)
@@ -382,6 +388,8 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
           auto qit = new QGraphicsTextItem(str.c_str());
           qit->setFont(*_bigstringfont_);
           qit->setDefaultTextColor(*_bigstringcolor_);
+	  QFontMetrics fm(*_bigstringfont_);
+	  qit->setTextWidth(fm.averageCharWidth()*4*smallstringlength/3);
           return qit;
         }
     }
@@ -390,14 +398,35 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
 
 
 
+
 QGraphicsItem*
 BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown)
 {
   BXO_ASSERT(pob != nullptr, "objref_gitem: no pob");
-  if (depth <= 0 || is_shown_objref(pob))
+  if (pob->is_named())
     {
     }
+  else if (depth <= 0 || is_shown_objref(pob))
+    {
+      auto comstr = pob->get_attr(BXO_VARPREDEF(comment)).to_string();
+      if (comstr.empty()) {
+      }
+      else {
+      }
+    }
+  else {
+    if (pshown) *pshown = true;
+    return objcontent_gitem(pob.get(), depth);
+  }
 } // end  BxoMainGraphicsScenePayl::objref_gitem
+
+
+
+QGraphicsItem*
+BxoMainGraphicsScenePayl::objcontent_gitem(BxoObject*obp, int depth)
+{
+  BXO_ASSERT(obp != nullptr, "no obp");
+}
 
 // bxoglob_the_system
 void bxo_gui_init(QApplication*qapp)
