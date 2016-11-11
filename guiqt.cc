@@ -26,6 +26,7 @@
 #include <QGraphicsView>
 #include <QGraphicsLinearLayout>
 #include <QGraphicsLayoutItem>
+#include <QGraphicsItemGroup>
 #include <QToolBar>
 #include <QMenuBar>
 #include <QApplication>
@@ -116,7 +117,9 @@ class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
   static std::unique_ptr<QFont> _smallstringfont_;
   static std::unique_ptr<QColor> _bigstringcolor_;
   static std::unique_ptr<QFont> _bigstringfont_;
-#warning we need to keep a map from object to their graphicitems occurrence
+protected:
+  void add_obshow(BxoAnyObjrefShow*osh);
+  void remove_obshow(BxoAnyObjrefShow*osh);
 public:
   static void initialize(QApplication*);
   static void finalize(QApplication*);
@@ -168,6 +171,7 @@ protected:
   {
     BXO_ASSERT(obp, "missing pob");
     BXO_ASSERT(grascen, "missing grascen");
+    grascen->add_obshow(this);
   };
   BxoAnyObjrefShow(const BxoAnyObjrefShow&) = delete;
   BxoAnyObjrefShow(BxoAnyObjrefShow&&) = delete;
@@ -184,6 +188,7 @@ public:
   virtual QGraphicsItem* gitem() const=0;
   virtual ~BxoAnyObjrefShow()
   {
+    _grascen->remove_obshow(this);
     _obp=nullptr;
     _grascen=nullptr;
   };
@@ -229,15 +234,41 @@ public:
 };        // end of class BxoAnonObjrefShow
 
 
-/// commented object reference show
+/// commented anonymous object reference show
 class BxoCommentedObjrefShow : public BxoAnyObjrefShow
 {
+  QGraphicsItemGroup _group;
+  QGraphicsLinearLayout _vlay;
+  QGraphicsSimpleTextItem _gobtextit;
+  QGraphicsSimpleTextItem _gcommtextit;
+  BxoCommentedObjrefShow(BxoObject*obp, const std::string& commstr, BxoMainGraphicsScenePayl* grascen)
+    : BxoAnyObjrefShow(obp,grascen),
+      _group(),
+      _vlay(Qt::Vertical),
+      _gobtextit(obp->strid().c_str()), _gcommtextit(commstr.c_str())
+  {
+    const int spacing = 3;
+#warning BxoCommentedObjrefShow bad constructor
+#if 0
+    _vlay.addItem(&_gobtextit);
+    _vlay.setItemSpacing(0, spacing);
+    _vlay.addItem(&_gcommtextit);
+#endif
+    _group.addToGroup(&_gobtextit);
+    _group.addToGroup(&_gcommtextit);
+  }
 public:
-  virtual QGraphicsItem* gitem() const /* { return const_cast<QGraphicsSimpleTextItem*>(&_gitem); }*/;
+  virtual QGraphicsItem* gitem() const
+  {
+    return const_cast<QGraphicsItemGroup*>(&_group);
+  };
   virtual ~BxoCommentedObjrefShow() {};
   virtual void hilight(bool on);
   static BxoAnyObjrefShow*make(BxoObject*obp, const std::string& comment, BxoMainGraphicsScenePayl* grascen);
 }; // end class BxoCommentedObjrefShow
+
+
+
 
 void
 BxoMainWindowPayl::fill_menu(void)
@@ -389,6 +420,31 @@ _shownobjmap(), _layout(Qt::Vertical)
 {
 } // end BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl
 
+void
+BxoMainGraphicsScenePayl::add_obshow(BxoAnyObjrefShow*osh)
+{
+  BXO_ASSERT(osh, "no obrefshow");
+  std::shared_ptr<BxoObject> obp = osh->obptr()->shared_from_this();
+  _objoccmultimap.insert({obp,osh});
+} // end of BxoMainGraphicsScenePayl::add_obshow
+
+void
+BxoMainGraphicsScenePayl::remove_obshow(BxoAnyObjrefShow*osh)
+{
+  BXO_ASSERT(osh, "no obrefshow");
+  std::shared_ptr<BxoObject> obp = osh->obptr()->shared_from_this();
+  auto r = _objoccmultimap.equal_range(obp);
+  for (auto it = r.first; it != r.second; it++)
+    {
+      if (it->second == osh)
+        {
+          _objoccmultimap.erase(it);
+          return;
+        }
+    }
+  BXO_ASSERT(obp, "corrupted _objoccmultimap");
+} // end of BxoMainGraphicsScenePayl::remove_obshow
+
 std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_nilbrush_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_nilfont_;
 std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_intbrush_;
@@ -435,6 +491,7 @@ BxoMainGraphicsScenePayl::finalize(QApplication*qapp)
 QGraphicsItem*
 BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
 {
+  bool got_set = false;
   switch (val.kind())
     {
     case BxoVKind::NoneK:
@@ -475,6 +532,19 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
           return qit;
         }
     }
+    case BxoVKind::ObjectK:
+    {
+      auto shob = objref_gitem(val.as_object(), depth);
+      return shob->gitem();
+    }
+    case BxoVKind::SetK:
+      got_set = true;
+    // failthru
+    case BxoVKind::TupleK:
+    {
+      auto seq = val.get_sequence();
+      unsigned len = seq->length();
+    }
     }
 } // end  BxoMainGraphicsScenePayl::value_gitem
 
@@ -487,15 +557,20 @@ BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int 
   BXO_ASSERT(pob != nullptr, "objref_gitem: no pob");
   if (pob->is_named())
     {
+      auto osh = BxoNamedObjrefShow::make(pob.get(),this);
+      return osh;
     }
   else if (depth <= 0 || is_shown_objref(pob))
     {
+      if (pshown) *pshown = false;
       auto comstr = pob->get_attr(BXO_VARPREDEF(comment)).to_string();
       if (comstr.empty())
         {
+          return BxoAnonObjrefShow::make(pob.get(),this);
         }
       else
         {
+          return BxoCommentedObjrefShow::make(pob.get(), comstr, this);
         }
     }
   else
@@ -551,4 +626,50 @@ void bxo_gui_stop(QApplication*qapp)
   BXO_VERBOSELOG("bxo_gui_stop end");
 } // end bxo_gui_stop
 
+void
+BxoNamedObjrefShow::hilight(bool on)
+{
+  BXO_BACKTRACELOG("BxoNamedObjrefShow::hilight on=" << on);
+} // end of BxoNamedObjrefShow::hilight
+
+BxoAnyObjrefShow*
+BxoNamedObjrefShow::make(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
+{
+  BXO_ASSERT(obp, "no obp");
+  BXO_ASSERT(grascen, "no grascen");
+  return new BxoNamedObjrefShow(obp,grascen);
+} // end BxoNamedObjrefShow::make
+
+BxoAnyObjrefShow*
+BxoAnonObjrefShow::make(BxoObject*obp, BxoMainGraphicsScenePayl*grascen)
+{
+  BXO_ASSERT(obp, "no obp");
+  BXO_ASSERT(grascen, "no grascen");
+  return new BxoAnonObjrefShow(obp,grascen);
+} // end BxoAnonObjrefShow::make
+
+void
+BxoAnonObjrefShow::hilight(bool on)
+{
+  BXO_BACKTRACELOG("BxoAnonObjrefShow::hilight on=" << on);
+} // end of BxoAnonObjrefShow::hilight
+
+
+BxoAnyObjrefShow*
+BxoCommentedObjrefShow::make(BxoObject*obp, const std::string&comm, BxoMainGraphicsScenePayl*grascen)
+{
+  BXO_ASSERT(obp, "no obp");
+  BXO_ASSERT(grascen, "no grascen");
+  return new BxoCommentedObjrefShow(obp,comm,grascen);
+} // end BxoCommentedObjrefShow::make
+
+void
+BxoCommentedObjrefShow::hilight(bool on)
+{
+  BXO_BACKTRACELOG("BxoCommentedObjrefShow::hilight on=" << on);
+} // end of BxoCommentedObjrefShow::hilight
+
+
+////////////////
 #include "guiqt.moc.h"
+//// eof guiqt.cc
