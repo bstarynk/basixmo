@@ -77,29 +77,48 @@ public:
 };        // end BxoMainWindowPayl
 
 
-class BxoShownObjectGroup
-  : public QGraphicsItemGroup, public QGraphicsLinearLayout
+
+class BxoAnyShow
+  : public virtual QGraphicsLayoutItem, public virtual QGraphicsItem
 {
-  friend class BxoMainGraphicsScenePayl;
-  std::shared_ptr<BxoObject> _shobj;
-  int _depth;
-  /// we probably need a title layout, an attribute layout,
-  /// a component layout, a payload layout
+private:
+  BxoMainGraphicsScenePayl* _gscenp;
 protected:
-  BxoShownObjectGroup(BxoObject*obj, int depth) :
-    QGraphicsItemGroup(), QGraphicsLinearLayout(Qt::Vertical),
-    _shobj(obj), _depth(depth)
-  {
-  };
+  struct GraphicsItemTag {};
+  struct ShowTag {};
+  BxoAnyShow(struct GraphicsItemTag, QGraphicsItem* parent=nullptr)
+    : QGraphicsLayoutItem(nullptr), QGraphicsItem(parent), _gscenp(nullptr) {};
+  inline BxoAnyShow(struct ShowTag, BxoAnyShow* parent=nullptr, bool islayout=false);
 public:
-  static BxoShownObjectGroup* make(BxoObject*obj,int depth);
-  inline BxoMainGraphicsScenePayl*bxo_scene(void) const;
-  virtual ~BxoShownObjectGroup() {};
-  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
-  BxoShownObjectGroup(const BxoShownObjectGroup&) = default;
-};        // end BxoShownObjectGroup
+  BxoMainGraphicsScenePayl* gscene() const
+  {
+    return _gscenp;
+  };
+  inline void put_in_gscene(BxoMainGraphicsScenePayl*gsp);
+  inline void remove_from_gscene(void);
+  virtual ~BxoAnyShow();
+  virtual BxoVal bval(void) const
+  {
+    return nullptr;
+  };
+  // inherited from QGraphicsLayoutItem
+  virtual void setGeometry(const QRectF&geom) =0;
+  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint= QSizeF()) const =0;
+  // inherited from QGraphicsItem
+  virtual QRectF boundingRect() const =0;
+  virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr) =0;
+};        // end BxoAnyShow
+
+class BxoShownObjectGroup : public BxoAnyShow
+{
+  virtual void setGeometry(const QRectF&geom);
+  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint= QSizeF()) const;
+  virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr);
+  virtual QRectF boundingRect() const;
+};
 
 class BxoAnyObjrefShow;
+
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
   friend class BxoMainWindowPayl;
@@ -160,8 +179,8 @@ public:
   };
 };        // end BxoMainGraphicsScenePayl
 
-
-class BxoAnyObjrefShow
+#if 0
+class BxoAnyObjrefShow : public BxoAnyShow
 {
   BxoObject* _obp;
   BxoMainGraphicsScenePayl* _grascen;
@@ -193,8 +212,6 @@ public:
     _grascen=nullptr;
   };
 };        // end of BxoAnyObjrefShow
-
-
 // named object reference show
 class BxoNamedObjrefShow final : public BxoAnyObjrefShow
 {
@@ -267,6 +284,8 @@ public:
   static BxoAnyObjrefShow*make(BxoObject*obp, const std::string& comment, BxoMainGraphicsScenePayl* grascen);
 }; // end class BxoCommentedObjrefShow
 
+
+#endif
 
 
 
@@ -394,19 +413,44 @@ BxoMainWindowPayl::grascen_ob() const
     return nullptr;
 }
 
-
-QSizeF
-BxoShownObjectGroup::sizeHint(Qt::SizeHint which, const QSizeF &constraint) const
+BxoAnyShow::BxoAnyShow(struct ShowTag, BxoAnyShow* parent, bool islayout)
+  : QGraphicsLayoutItem(parent, islayout), QGraphicsItem(parent), _gscenp(nullptr)
 {
-  return QGraphicsLinearLayout::sizeHint(which, constraint);
-} // end of  BxoShownObjectGroup::sizeHint
+  if (parent)
+    {
+      auto pgsp = parent->_gscenp;
+      if (pgsp)
+        {
+          _gscenp = pgsp;
+          pgsp->addItem((QGraphicsItem*)this);
+        }
+    }
+};        // end BxoAnyShow::BxoAnyShow
 
-
-BxoMainGraphicsScenePayl*
-BxoShownObjectGroup::bxo_scene(void) const
+void
+BxoAnyShow::put_in_gscene(BxoMainGraphicsScenePayl*gsp)
 {
-  return dynamic_cast<BxoMainGraphicsScenePayl*>(QGraphicsItem::scene());
-} // end BxoShownObjectGroup::bxo_scene
+  if (_gscenp == gsp) return;
+  if (_gscenp) _gscenp->removeItem((QGraphicsItem*)this);
+  _gscenp = gsp;
+  gsp->addItem((QGraphicsItem*)this);
+};        // end BxoAnyShow::put_in_gscene
+
+void
+BxoAnyShow::remove_from_gscene(void)
+{
+  if (!_gscenp) return;
+  auto gsp = _gscenp;
+  _gscenp=nullptr;
+  gsp->removeItem((QGraphicsItem*)this);
+};        // end BxoAnyShow::remove_from_gscene
+
+BxoAnyShow::~BxoAnyShow()
+{
+  auto gsp = _gscenp;
+  _gscenp = nullptr;
+  if (gsp) gsp->removeItem((QGraphicsItem*)this);
+};        // end BxoAnyShow::~BxoAnyShow
 
 BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
 {
@@ -424,14 +468,17 @@ void
 BxoMainGraphicsScenePayl::add_obshow(BxoAnyObjrefShow*osh)
 {
   BXO_ASSERT(osh, "no obrefshow");
+#if 0
   std::shared_ptr<BxoObject> obp = osh->obptr()->shared_from_this();
   _objoccmultimap.insert({obp,osh});
+#endif
 } // end of BxoMainGraphicsScenePayl::add_obshow
 
 void
 BxoMainGraphicsScenePayl::remove_obshow(BxoAnyObjrefShow*osh)
 {
   BXO_ASSERT(osh, "no obrefshow");
+#if 0
   std::shared_ptr<BxoObject> obp = osh->obptr()->shared_from_this();
   auto r = _objoccmultimap.equal_range(obp);
   for (auto it = r.first; it != r.second; it++)
@@ -443,6 +490,7 @@ BxoMainGraphicsScenePayl::remove_obshow(BxoAnyObjrefShow*osh)
         }
     }
   BXO_ASSERT(obp, "corrupted _objoccmultimap");
+#endif
 } // end of BxoMainGraphicsScenePayl::remove_obshow
 
 std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_nilbrush_;
@@ -534,8 +582,10 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
     }
     case BxoVKind::ObjectK:
     {
+#if 0
       auto shob = objref_gitem(val.as_object(), depth);
       return shob->gitem();
+#endif
     }
     case BxoVKind::SetK:
       got_set = true;
@@ -555,6 +605,7 @@ BxoAnyObjrefShow*
 BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown)
 {
   BXO_ASSERT(pob != nullptr, "objref_gitem: no pob");
+#if 0
   if (pob->is_named())
     {
       auto osh = BxoNamedObjrefShow::make(pob.get(),this);
@@ -578,6 +629,7 @@ BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int 
       if (pshown) *pshown = true;
       return objcontent_gitem(pob.get(), depth);
     }
+#endif
 } // end  BxoMainGraphicsScenePayl::objref_gitem
 
 
@@ -626,6 +678,7 @@ void bxo_gui_stop(QApplication*qapp)
   BXO_VERBOSELOG("bxo_gui_stop end");
 } // end bxo_gui_stop
 
+#if 0
 void
 BxoNamedObjrefShow::hilight(bool on)
 {
@@ -668,7 +721,25 @@ BxoCommentedObjrefShow::hilight(bool on)
 {
   BXO_BACKTRACELOG("BxoCommentedObjrefShow::hilight on=" << on);
 } // end of BxoCommentedObjrefShow::hilight
+#endif
 
+
+#warning should code virtual methods of BxoShownObjectGroup
+void BxoShownObjectGroup::setGeometry(const QRectF&geom)
+{
+} // end BxoShownObjectGroup::setGeometry
+
+QSizeF BxoShownObjectGroup::sizeHint(Qt::SizeHint which, const QSizeF &constraint) const
+{
+} // end BxoShownObjectGroup::sizeHint
+
+void BxoShownObjectGroup::paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget)
+{
+} // end BxoShownObjectGroup::paint
+
+QRectF BxoShownObjectGroup::boundingRect() const
+{
+} // end BxoShownObjectGroup::boundingRect
 
 ////////////////
 #include "guiqt.moc.h"
