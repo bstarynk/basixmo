@@ -109,15 +109,64 @@ public:
   virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr) =0;
 };        // end BxoAnyShow
 
-class BxoShownObjectGroup : public BxoAnyShow
+
+
+class BxoAnyObjrefShow: public BxoAnyShow
 {
+  std::shared_ptr<BxoObject> _obref;
+protected:
+  // subclasses should implement virtual methods of BxoAnyShow
+  virtual BxoVal bval(void) const
+  {
+    return BxoVObj(_obref);
+  };
+  BxoAnyObjrefShow(const std::shared_ptr<BxoObject>&obp, struct GraphicsItemTag tg, QGraphicsItem* parent=nullptr)
+    : BxoAnyShow(tg, parent), _obref(obp) {};
+  BxoAnyObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent=nullptr, bool islayout=false)
+    : BxoAnyShow(tg,parent,islayout), _obref(obp) {};
+};        // end BxoAnyObjrefShow
+
+
+class BxoNamedObjrefShow : public BxoAnyObjrefShow
+{
+  QGraphicsSimpleTextItem _nametxit;
+public:
+  // inherited from QGraphicsLayoutItem
+  virtual void setGeometry(const QRectF&geom);
+  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint);
+  // inherited from QGraphicsItem
+  virtual QRectF boundingRect() const
+  {
+    return _nametxit.boundingRect();
+  };
+  virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr)
+  {
+    _nametxit.paint(painter,option,widget);
+  };
+
+};        // end BxoNamedObjrefShow
+
+void
+BxoNamedObjrefShow::setGeometry(const QRectF&geom)
+{
+#warning incomplete BxoNamedObjrefShow::setGeometry
+} // end BxoNamedObjrefShow::setGeometry
+
+QSizeF
+BxoNamedObjrefShow::sizeHint(Qt::SizeHint which, const QSizeF &constraint)
+{
+#warning incomplete BxoNamedObjrefShow::sizeHint
+} // end BxoNamedObjrefShow::sizeHint
+
+class BxoShownObjectGroup : public BxoAnyObjrefShow
+{
+public:
   virtual void setGeometry(const QRectF&geom);
   virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint= QSizeF()) const;
   virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr);
   virtual QRectF boundingRect() const;
 };
 
-class BxoAnyObjrefShow;
 
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
 {
@@ -180,6 +229,8 @@ public:
 };        // end BxoMainGraphicsScenePayl
 
 #if 0
+namespace Old
+{
 class BxoAnyObjrefShow : public BxoAnyShow
 {
   BxoObject* _obp;
@@ -212,6 +263,7 @@ public:
     _grascen=nullptr;
   };
 };        // end of BxoAnyObjrefShow
+
 // named object reference show
 class BxoNamedObjrefShow final : public BxoAnyObjrefShow
 {
@@ -284,8 +336,8 @@ public:
   static BxoAnyObjrefShow*make(BxoObject*obp, const std::string& comment, BxoMainGraphicsScenePayl* grascen);
 }; // end class BxoCommentedObjrefShow
 
-
-#endif
+};
+#endif /*0*/
 
 
 
@@ -376,6 +428,7 @@ BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own, BxoMainGraphicsScenePayl*gra
   setCentralWidget(_graview);
   fill_menu();
 } // end of BxoMainWindowPayl::BxoMainWindowPayl
+
 
 void
 BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
@@ -679,6 +732,8 @@ void bxo_gui_stop(QApplication*qapp)
 } // end bxo_gui_stop
 
 #if 0
+namespace Old
+{
 void
 BxoNamedObjrefShow::hilight(bool on)
 {
@@ -721,6 +776,7 @@ BxoCommentedObjrefShow::hilight(bool on)
 {
   BXO_BACKTRACELOG("BxoCommentedObjrefShow::hilight on=" << on);
 } // end of BxoCommentedObjrefShow::hilight
+};        // end namespace Old
 #endif
 
 
