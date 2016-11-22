@@ -130,6 +130,7 @@ protected:
 class BxoNamedObjrefShow : public BxoAnyObjrefShow
 {
   QGraphicsSimpleTextItem _nametxit;
+  BxoNamedObjrefShow(const std::shared_ptr<BxoObject>&obp, struct GraphicsItemTag tg, QGraphicsItem* parent=nullptr);
 public:
   // inherited from QGraphicsLayoutItem
   virtual void setGeometry(const QRectF&geom);
@@ -145,18 +146,6 @@ public:
   };
 
 };        // end BxoNamedObjrefShow
-
-void
-BxoNamedObjrefShow::setGeometry(const QRectF&geom)
-{
-#warning incomplete BxoNamedObjrefShow::setGeometry
-} // end BxoNamedObjrefShow::setGeometry
-
-QSizeF
-BxoNamedObjrefShow::sizeHint(Qt::SizeHint which, const QSizeF &constraint)
-{
-#warning incomplete BxoNamedObjrefShow::sizeHint
-} // end BxoNamedObjrefShow::sizeHint
 
 class BxoShownObjectGroup : public BxoAnyObjrefShow
 {
@@ -185,6 +174,8 @@ class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
   static std::unique_ptr<QFont> _smallstringfont_;
   static std::unique_ptr<QColor> _bigstringcolor_;
   static std::unique_ptr<QFont> _bigstringfont_;
+  static std::unique_ptr<QBrush> _namebrush_;
+  static std::unique_ptr<QFont> _namefont_;
 protected:
   void add_obshow(BxoAnyObjrefShow*osh);
   void remove_obshow(BxoAnyObjrefShow*osh);
@@ -227,6 +218,30 @@ public:
     throw std::logic_error("BxoMainGraphicsScenePayl::scan_payload_content");
   };
 };        // end BxoMainGraphicsScenePayl
+
+
+
+BxoNamedObjrefShow::BxoNamedObjrefShow(const std::shared_ptr<BxoObject>&obp, struct GraphicsItemTag tg, QGraphicsItem* parent)
+  : BxoAnyObjrefShow(obp, tg, parent),
+    _nametxit(obp->name().c_str())
+{
+}
+
+void
+BxoNamedObjrefShow::setGeometry(const QRectF&geom)
+{
+#warning incomplete BxoNamedObjrefShow::setGeometry
+} // end BxoNamedObjrefShow::setGeometry
+
+QSizeF
+BxoNamedObjrefShow::sizeHint(Qt::SizeHint which, const QSizeF &constraint)
+{
+#warning incomplete BxoNamedObjrefShow::sizeHint
+} // end BxoNamedObjrefShow::sizeHint
+
+
+
+
 
 #if 0
 namespace Old
@@ -552,6 +567,8 @@ std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_intbrush_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_intfont_;
 std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_smallstringbrush_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_smallstringfont_;
+std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_namebrush_;
+std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_namefont_;
 std::unique_ptr<QColor> BxoMainGraphicsScenePayl::_bigstringcolor_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_bigstringfont_;
 
