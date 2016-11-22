@@ -78,6 +78,7 @@ public:
 
 
 
+#warning QGraphicsLayoutItem is wrong, see http://stackoverflow.com/a/40744112/841108
 class BxoAnyShow
   : public virtual QGraphicsLayoutItem, public virtual QGraphicsItem
 {
