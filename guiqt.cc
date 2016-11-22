@@ -82,18 +82,14 @@ class BxoAnyShow
   : public virtual QGraphicsLayoutItem, public virtual QGraphicsItem
 {
 private:
-  BxoMainGraphicsScenePayl* _gscenp;
 protected:
   struct GraphicsItemTag {};
   struct ShowTag {};
   BxoAnyShow(struct GraphicsItemTag, QGraphicsItem* parent=nullptr)
-    : QGraphicsLayoutItem(nullptr), QGraphicsItem(parent), _gscenp(nullptr) {};
+    : QGraphicsLayoutItem(nullptr), QGraphicsItem(parent) {};
   inline BxoAnyShow(struct ShowTag, BxoAnyShow* parent=nullptr, bool islayout=false);
 public:
-  BxoMainGraphicsScenePayl* gscene() const
-  {
-    return _gscenp;
-  };
+  inline BxoMainGraphicsScenePayl* gscene() const;
   inline void put_in_gscene(BxoMainGraphicsScenePayl*gsp);
   inline void remove_from_gscene(void);
   virtual ~BxoAnyShow();
@@ -230,6 +226,8 @@ BxoNamedObjrefShow::BxoNamedObjrefShow(const std::shared_ptr<BxoObject>&obp, str
 void
 BxoNamedObjrefShow::setGeometry(const QRectF&geom)
 {
+  auto gsc = gscene();
+  if (!gsc) return;
 #warning incomplete BxoNamedObjrefShow::setGeometry
 } // end BxoNamedObjrefShow::setGeometry
 
@@ -482,14 +480,13 @@ BxoMainWindowPayl::grascen_ob() const
 }
 
 BxoAnyShow::BxoAnyShow(struct ShowTag, BxoAnyShow* parent, bool islayout)
-  : QGraphicsLayoutItem(parent, islayout), QGraphicsItem(parent), _gscenp(nullptr)
+  : QGraphicsLayoutItem(parent, islayout), QGraphicsItem(parent)
 {
   if (parent)
     {
-      auto pgsp = parent->_gscenp;
+      auto pgsp = parent->gscene();
       if (pgsp)
         {
-          _gscenp = pgsp;
           pgsp->addItem((QGraphicsItem*)this);
         }
     }
@@ -498,26 +495,24 @@ BxoAnyShow::BxoAnyShow(struct ShowTag, BxoAnyShow* parent, bool islayout)
 void
 BxoAnyShow::put_in_gscene(BxoMainGraphicsScenePayl*gsp)
 {
-  if (_gscenp == gsp) return;
-  if (_gscenp) _gscenp->removeItem((QGraphicsItem*)this);
-  _gscenp = gsp;
-  gsp->addItem((QGraphicsItem*)this);
+  auto cgs = gscene();
+  if (cgs == gsp) return;
+  if (cgs)
+    cgs->removeItem((QGraphicsItem*)this);
+  if (gsp)
+    gsp->addItem((QGraphicsItem*)this);
 };        // end BxoAnyShow::put_in_gscene
 
 void
 BxoAnyShow::remove_from_gscene(void)
 {
-  if (!_gscenp) return;
-  auto gsp = _gscenp;
-  _gscenp=nullptr;
-  gsp->removeItem((QGraphicsItem*)this);
+  auto cgs = gscene();
+  if (cgs)
+    cgs->removeItem((QGraphicsItem*)this);
 };        // end BxoAnyShow::remove_from_gscene
 
 BxoAnyShow::~BxoAnyShow()
 {
-  auto gsp = _gscenp;
-  _gscenp = nullptr;
-  if (gsp) gsp->removeItem((QGraphicsItem*)this);
 };        // end BxoAnyShow::~BxoAnyShow
 
 BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
@@ -605,6 +600,11 @@ BxoMainGraphicsScenePayl::finalize(QApplication*qapp)
 } // end of BxoMainGraphicsScenePayl::finalize
 
 
+
+BxoMainGraphicsScenePayl* BxoAnyShow::gscene() const
+{
+  return dynamic_cast<BxoMainGraphicsScenePayl*>(scene());
+};
 
 QGraphicsItem*
 BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
