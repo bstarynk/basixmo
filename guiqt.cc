@@ -80,15 +80,15 @@ public:
 
 #warning QGraphicsLayoutItem is wrong, see http://stackoverflow.com/a/40744112/841108
 class BxoAnyShow
-  : public virtual QGraphicsLayoutItem, public virtual QGraphicsItem
+  : public virtual  QGraphicsItem
 {
 private:
 protected:
   struct GraphicsItemTag {};
   struct ShowTag {};
   BxoAnyShow(struct GraphicsItemTag, QGraphicsItem* parent=nullptr)
-    : QGraphicsLayoutItem(nullptr), QGraphicsItem(parent) {};
-  inline BxoAnyShow(struct ShowTag, BxoAnyShow* parent=nullptr, bool islayout=false);
+    :  QGraphicsItem(parent) {};
+  inline BxoAnyShow(struct ShowTag, BxoAnyShow* parent=nullptr);
 public:
   inline BxoMainGraphicsScenePayl* gscene() const;
   inline void put_in_gscene(BxoMainGraphicsScenePayl*gsp);
@@ -98,9 +98,6 @@ public:
   {
     return nullptr;
   };
-  // inherited from QGraphicsLayoutItem
-  virtual void setGeometry(const QRectF&geom) =0;
-  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint= QSizeF()) const =0;
   // inherited from QGraphicsItem
   virtual QRectF boundingRect() const =0;
   virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr) =0;
@@ -119,8 +116,8 @@ protected:
   };
   BxoAnyObjrefShow(const std::shared_ptr<BxoObject>&obp, struct GraphicsItemTag tg, QGraphicsItem* parent=nullptr)
     : BxoAnyShow(tg, parent), _obref(obp) {};
-  BxoAnyObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent=nullptr, bool islayout=false)
-    : BxoAnyShow(tg,parent,islayout), _obref(obp) {};
+  BxoAnyObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent=nullptr)
+    : BxoAnyShow(tg,parent), _obref(obp) {};
 };        // end BxoAnyObjrefShow
 
 
@@ -480,8 +477,8 @@ BxoMainWindowPayl::grascen_ob() const
     return nullptr;
 }
 
-BxoAnyShow::BxoAnyShow(struct ShowTag, BxoAnyShow* parent, bool islayout)
-  : QGraphicsLayoutItem(parent, islayout), QGraphicsItem(parent)
+BxoAnyShow::BxoAnyShow(struct ShowTag, BxoAnyShow* parent)
+  : QGraphicsItem(parent)
 {
   if (parent)
     {
