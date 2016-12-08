@@ -78,16 +78,11 @@ public:
 
 
 
-#warning QGraphicsLayoutItem is wrong, see http://stackoverflow.com/a/40744112/841108
 class BxoAnyShow
-  : public virtual  QGraphicsItem
 {
 private:
 protected:
-  struct GraphicsItemTag {};
   struct ShowTag {};
-  BxoAnyShow(struct GraphicsItemTag, QGraphicsItem* parent=nullptr)
-    :  QGraphicsItem(parent) {};
   inline BxoAnyShow(struct ShowTag, BxoAnyShow* parent=nullptr);
 public:
   inline BxoMainGraphicsScenePayl* gscene() const;
@@ -98,9 +93,7 @@ public:
   {
     return nullptr;
   };
-  // inherited from QGraphicsItem
-  virtual QRectF boundingRect() const =0;
-  virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr) =0;
+  virtual QGraphicsItem* gitem(void) const  =0;
 };        // end BxoAnyShow
 
 
@@ -114,41 +107,65 @@ protected:
   {
     return BxoVObj(_obref);
   };
-  BxoAnyObjrefShow(const std::shared_ptr<BxoObject>&obp, struct GraphicsItemTag tg, QGraphicsItem* parent=nullptr)
-    : BxoAnyShow(tg, parent), _obref(obp) {};
   BxoAnyObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent=nullptr)
     : BxoAnyShow(tg,parent), _obref(obp) {};
 };        // end BxoAnyObjrefShow
 
 
+/// show an object reference for a named object
 class BxoNamedObjrefShow : public BxoAnyObjrefShow
 {
   QGraphicsSimpleTextItem _nametxit;
-  BxoNamedObjrefShow(const std::shared_ptr<BxoObject>&obp, struct GraphicsItemTag tg, QGraphicsItem* parent=nullptr);
+  BxoNamedObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent=nullptr);
 public:
-  // inherited from QGraphicsLayoutItem
-  virtual void setGeometry(const QRectF&geom);
-  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint);
-  // inherited from QGraphicsItem
-  virtual QRectF boundingRect() const
+  static BxoAnyObjrefShow*make(BxoObject*ob, BxoMainGraphicsScenePayl*gscen);
+  virtual QGraphicsItem* gitem(void) const
   {
-    return _nametxit.boundingRect();
+    return const_cast<QGraphicsItem*>(static_cast<const QGraphicsItem*>(&_nametxit));
   };
-  virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr)
-  {
-    _nametxit.paint(painter,option,widget);
-  };
+};        // end class BxoNamedObjrefShow
 
-};        // end BxoNamedObjrefShow
+
+/// show an object reference for an anonymous object without comment
+class BxoAnonObjrefShow :   public BxoAnyObjrefShow
+{
+  QGraphicsSimpleTextItem _idtxit;
+  BxoAnonObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent=nullptr);
+public:
+  static BxoAnyObjrefShow*make(BxoObject*ob, BxoMainGraphicsScenePayl*gscen);
+  virtual QGraphicsItem* gitem(void) const
+  {
+    return const_cast<QGraphicsItem*>(static_cast<const QGraphicsItem*>(&_idtxit));
+  };
+};        // end class BxoAnonObjrefShow
+
+
+
+/// show an object reference for a commented anonymous object
+class BxoCommentedObjrefShow :   public BxoAnyObjrefShow
+{
+  QGraphicsItemGroup _groupit;
+  QGraphicsSimpleTextItem _idtxit;
+  QGraphicsSimpleTextItem _commtxit;
+  BxoCommentedObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent=nullptr);
+public:
+  static BxoAnyObjrefShow*make(BxoObject*ob, BxoMainGraphicsScenePayl*gscen);
+  virtual QGraphicsItem* gitem(void) const
+  {
+    return const_cast<QGraphicsItem*>(static_cast<const QGraphicsItem*>(&_groupit));
+  };
+};        // end BxoCommentedObjrefShow
 
 class BxoShownObjectGroup : public BxoAnyObjrefShow
 {
+  QGraphicsItemGroup _groupit;
 public:
-  virtual void setGeometry(const QRectF&geom);
-  virtual QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint= QSizeF()) const;
-  virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget=nullptr);
-  virtual QRectF boundingRect() const;
-};
+  static BxoAnyObjrefShow*make(BxoObject*ob, BxoMainGraphicsScenePayl*gscen);
+  virtual QGraphicsItem* gitem(void) const
+  {
+    return const_cast<QGraphicsItem*>(static_cast<const QGraphicsItem*>(&_groupit));
+  };
+};        // end BxoShownObjectGroup
 
 
 class BxoMainGraphicsScenePayl :public QGraphicsScene,  public BxoPayload
@@ -215,140 +232,11 @@ public:
 
 
 
-BxoNamedObjrefShow::BxoNamedObjrefShow(const std::shared_ptr<BxoObject>&obp, struct GraphicsItemTag tg, QGraphicsItem* parent)
-  : BxoAnyObjrefShow(obp, tg, parent),
-    _nametxit(obp->name().c_str())
-{
-}
-
-void
-BxoNamedObjrefShow::setGeometry(const QRectF&geom)
-{
-  auto gsc = gscene();
-  if (!gsc) return;
-#warning incomplete BxoNamedObjrefShow::setGeometry
-} // end BxoNamedObjrefShow::setGeometry
-
-QSizeF
-BxoNamedObjrefShow::sizeHint(Qt::SizeHint which, const QSizeF &constraint)
-{
-#warning incomplete BxoNamedObjrefShow::sizeHint
-} // end BxoNamedObjrefShow::sizeHint
 
 
 
 
 
-#if 0
-namespace Old
-{
-class BxoAnyObjrefShow : public BxoAnyShow
-{
-  BxoObject* _obp;
-  BxoMainGraphicsScenePayl* _grascen;
-protected:
-  BxoAnyObjrefShow(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
-    : _obp(obp), _grascen(grascen)
-  {
-    BXO_ASSERT(obp, "missing pob");
-    BXO_ASSERT(grascen, "missing grascen");
-    grascen->add_obshow(this);
-  };
-  BxoAnyObjrefShow(const BxoAnyObjrefShow&) = delete;
-  BxoAnyObjrefShow(BxoAnyObjrefShow&&) = delete;
-public:
-  BxoObject* obptr() const
-  {
-    return _obp;
-  };
-  BxoMainGraphicsScenePayl* grascen() const
-  {
-    return _grascen;
-  };
-  virtual void hilight(bool on) =0;
-  virtual QGraphicsItem* gitem() const=0;
-  virtual ~BxoAnyObjrefShow()
-  {
-    _grascen->remove_obshow(this);
-    _obp=nullptr;
-    _grascen=nullptr;
-  };
-};        // end of BxoAnyObjrefShow
-
-// named object reference show
-class BxoNamedObjrefShow final : public BxoAnyObjrefShow
-{
-  QGraphicsSimpleTextItem _gitem;
-  BxoNamedObjrefShow(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
-    : BxoAnyObjrefShow(obp,grascen),
-      _gitem (obp->name().c_str())
-  {
-  };
-public:
-  virtual QGraphicsItem* gitem() const
-  {
-    return const_cast<QGraphicsSimpleTextItem*>(&_gitem);
-  };
-  virtual ~BxoNamedObjrefShow() {};
-  virtual void hilight(bool on);
-  static BxoAnyObjrefShow*make(BxoObject*obp, BxoMainGraphicsScenePayl* grascen);
-};        // end of BxoNamedObjrefShow
-
-// anonymous uncommented object reference show
-class BxoAnonObjrefShow final : public BxoAnyObjrefShow
-{
-  QGraphicsSimpleTextItem _gitem;
-  BxoAnonObjrefShow(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
-    : BxoAnyObjrefShow(obp,grascen),
-      _gitem (obp->strid().c_str())
-  {
-  };
-public:
-  virtual QGraphicsItem* gitem() const
-  {
-    return const_cast<QGraphicsSimpleTextItem*>(&_gitem);
-  };
-  virtual ~BxoAnonObjrefShow() {};
-  virtual void hilight(bool on);
-  static BxoAnyObjrefShow*make(BxoObject*obp, BxoMainGraphicsScenePayl* grascen);
-};        // end of class BxoAnonObjrefShow
-
-
-/// commented anonymous object reference show
-class BxoCommentedObjrefShow : public BxoAnyObjrefShow
-{
-  QGraphicsItemGroup _group;
-  QGraphicsLinearLayout _vlay;
-  QGraphicsSimpleTextItem _gobtextit;
-  QGraphicsSimpleTextItem _gcommtextit;
-  BxoCommentedObjrefShow(BxoObject*obp, const std::string& commstr, BxoMainGraphicsScenePayl* grascen)
-    : BxoAnyObjrefShow(obp,grascen),
-      _group(),
-      _vlay(Qt::Vertical),
-      _gobtextit(obp->strid().c_str()), _gcommtextit(commstr.c_str())
-  {
-    const int spacing = 3;
-#warning BxoCommentedObjrefShow bad constructor
-#if 0
-    _vlay.addItem(&_gobtextit);
-    _vlay.setItemSpacing(0, spacing);
-    _vlay.addItem(&_gcommtextit);
-#endif
-    _group.addToGroup(&_gobtextit);
-    _group.addToGroup(&_gcommtextit);
-  }
-public:
-  virtual QGraphicsItem* gitem() const
-  {
-    return const_cast<QGraphicsItemGroup*>(&_group);
-  };
-  virtual ~BxoCommentedObjrefShow() {};
-  virtual void hilight(bool on);
-  static BxoAnyObjrefShow*make(BxoObject*obp, const std::string& comment, BxoMainGraphicsScenePayl* grascen);
-}; // end class BxoCommentedObjrefShow
-
-};
-#endif /*0*/
 
 
 
@@ -478,15 +366,9 @@ BxoMainWindowPayl::grascen_ob() const
 }
 
 BxoAnyShow::BxoAnyShow(struct ShowTag, BxoAnyShow* parent)
-  : QGraphicsItem(parent)
 {
   if (parent)
     {
-      auto pgsp = parent->gscene();
-      if (pgsp)
-        {
-          pgsp->addItem((QGraphicsItem*)this);
-        }
     }
 };        // end BxoAnyShow::BxoAnyShow
 
@@ -601,7 +483,10 @@ BxoMainGraphicsScenePayl::finalize(QApplication*qapp)
 
 BxoMainGraphicsScenePayl* BxoAnyShow::gscene() const
 {
-  return dynamic_cast<BxoMainGraphicsScenePayl*>(scene());
+  auto it = gitem();
+  if (it != nullptr)
+    return dynamic_cast<BxoMainGraphicsScenePayl*>(it->scene());
+  return nullptr;
 };
 
 QGraphicsItem*
@@ -650,10 +535,8 @@ BxoMainGraphicsScenePayl::value_gitem(const BxoVal&val, int depth)
     }
     case BxoVKind::ObjectK:
     {
-#if 0
       auto shob = objref_gitem(val.as_object(), depth);
       return shob->gitem();
-#endif
     }
     case BxoVKind::SetK:
       got_set = true;
@@ -673,12 +556,12 @@ BxoAnyObjrefShow*
 BxoMainGraphicsScenePayl::objref_gitem(const std::shared_ptr<BxoObject>pob, int depth, bool*pshown)
 {
   BXO_ASSERT(pob != nullptr, "objref_gitem: no pob");
-#if 0
   if (pob->is_named())
     {
       auto osh = BxoNamedObjrefShow::make(pob.get(),this);
       return osh;
     }
+#if 0
   else if (depth <= 0 || is_shown_objref(pob))
     {
       if (pshown) *pshown = false;
@@ -746,71 +629,20 @@ void bxo_gui_stop(QApplication*qapp)
   BXO_VERBOSELOG("bxo_gui_stop end");
 } // end bxo_gui_stop
 
-#if 0
-namespace Old
+
+BxoNamedObjrefShow::BxoNamedObjrefShow(const std::shared_ptr<BxoObject>&obp, struct ShowTag tg, BxoAnyShow* parent)
+  : BxoAnyObjrefShow(obp,tg,parent)
 {
-void
-BxoNamedObjrefShow::hilight(bool on)
-{
-  BXO_BACKTRACELOG("BxoNamedObjrefShow::hilight on=" << on);
-} // end of BxoNamedObjrefShow::hilight
+}
 
 BxoAnyObjrefShow*
 BxoNamedObjrefShow::make(BxoObject*obp, BxoMainGraphicsScenePayl* grascen)
 {
   BXO_ASSERT(obp, "no obp");
   BXO_ASSERT(grascen, "no grascen");
-  return new BxoNamedObjrefShow(obp,grascen);
+  return new BxoNamedObjrefShow(obp->shared_from_this(), ShowTag {});
 } // end BxoNamedObjrefShow::make
 
-BxoAnyObjrefShow*
-BxoAnonObjrefShow::make(BxoObject*obp, BxoMainGraphicsScenePayl*grascen)
-{
-  BXO_ASSERT(obp, "no obp");
-  BXO_ASSERT(grascen, "no grascen");
-  return new BxoAnonObjrefShow(obp,grascen);
-} // end BxoAnonObjrefShow::make
-
-void
-BxoAnonObjrefShow::hilight(bool on)
-{
-  BXO_BACKTRACELOG("BxoAnonObjrefShow::hilight on=" << on);
-} // end of BxoAnonObjrefShow::hilight
-
-
-BxoAnyObjrefShow*
-BxoCommentedObjrefShow::make(BxoObject*obp, const std::string&comm, BxoMainGraphicsScenePayl*grascen)
-{
-  BXO_ASSERT(obp, "no obp");
-  BXO_ASSERT(grascen, "no grascen");
-  return new BxoCommentedObjrefShow(obp,comm,grascen);
-} // end BxoCommentedObjrefShow::make
-
-void
-BxoCommentedObjrefShow::hilight(bool on)
-{
-  BXO_BACKTRACELOG("BxoCommentedObjrefShow::hilight on=" << on);
-} // end of BxoCommentedObjrefShow::hilight
-};        // end namespace Old
-#endif
-
-
-#warning should code virtual methods of BxoShownObjectGroup
-void BxoShownObjectGroup::setGeometry(const QRectF&geom)
-{
-} // end BxoShownObjectGroup::setGeometry
-
-QSizeF BxoShownObjectGroup::sizeHint(Qt::SizeHint which, const QSizeF &constraint) const
-{
-} // end BxoShownObjectGroup::sizeHint
-
-void BxoShownObjectGroup::paint(QPainter* painter, const QStyleOptionGraphicsItem*option, QWidget*widget)
-{
-} // end BxoShownObjectGroup::paint
-
-QRectF BxoShownObjectGroup::boundingRect() const
-{
-} // end BxoShownObjectGroup::boundingRect
 
 ////////////////
 #include "guiqt.moc.h"
