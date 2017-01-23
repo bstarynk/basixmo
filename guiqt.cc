@@ -340,11 +340,15 @@ BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
                                   QMessageBox::Cancel);
   if (ret == QMessageBox::Ok)
     {
+      BXO_VERBOSELOG("closing main window " << this << " owner=" << owner());
       clev->accept();
       QMainWindow::closeEvent(clev);
     }
   else
-    clev->ignore();
+    {
+      BXO_VERBOSELOG("keeping (NOT closing) main window " << this << " owner=" << owner());
+      clev->ignore();
+    }
 } // end BxoMainWindowPayl::closeEvent
 
 
@@ -403,7 +407,7 @@ BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
 
 BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl(BxoObject*own)
   : QGraphicsScene(), BxoPayload(*own,PayloadTag {}),
-_shownobjmap(), _layout(Qt::Vertical)
+    _shownobjmap(), _layout(Qt::Vertical)
 {
 } // end BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl
 
@@ -436,6 +440,9 @@ BxoMainGraphicsScenePayl::remove_obshow(BxoAnyObjrefShow*osh)
 #endif
 } // end of BxoMainGraphicsScenePayl::remove_obshow
 
+
+
+
 std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_nilbrush_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_nilfont_;
 std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_intbrush_;
@@ -446,6 +453,7 @@ std::unique_ptr<QBrush> BxoMainGraphicsScenePayl::_namebrush_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_namefont_;
 std::unique_ptr<QColor> BxoMainGraphicsScenePayl::_bigstringcolor_;
 std::unique_ptr<QFont> BxoMainGraphicsScenePayl::_bigstringfont_;
+
 
 void
 BxoMainGraphicsScenePayl::initialize(QApplication*qapp)
@@ -609,6 +617,7 @@ void bxo_gui_init(QApplication*qapp)
   theguihset->add(mainwinob);
   BXO_VERBOSELOG("bxo_gui_init end");
 } // end bxo_gui_init
+
 
 void bxo_gui_stop(QApplication*qapp)
 {
