@@ -254,24 +254,24 @@ BxoMainWindowPayl::fill_menu(void)
   {
     if (BxoDumper::default_dump_dir().empty())
       BxoDumper::set_default_dump_dir(".");
-    BXO_BACKTRACELOG("file dump into " << BxoDumper::default_dump_dir());
+    BXO_BACKTRACELOG("*menu file dump into " << BxoDumper::default_dump_dir());
     BxoDumper du(BxoDumper::default_dump_dir());
     du.full_dump();
-    BXO_VERBOSELOG("done dump into " << BxoDumper::default_dump_dir());
+    BXO_VERBOSELOG("menu done dump into " << BxoDumper::default_dump_dir());
   });
   filemenu->addAction("save and e&Xit",[=]
   {
     if (BxoDumper::default_dump_dir().empty())
       BxoDumper::set_default_dump_dir(".");
-    BXO_BACKTRACELOG("save and exit file into " << BxoDumper::default_dump_dir());
+    BXO_BACKTRACELOG("*menu save and exit file into " << BxoDumper::default_dump_dir());
     BxoDumper du(BxoDumper::default_dump_dir());
     du.full_dump();
     QApplication::exit();
-    BXO_VERBOSELOG("done final dump into " << BxoDumper::default_dump_dir());
+    BXO_VERBOSELOG("menu done final dump into " << BxoDumper::default_dump_dir());
   });
   filemenu->addAction("&Quit",[=]
   {
-    BXO_BACKTRACELOG("quit file without dump");
+    BXO_BACKTRACELOG("*menu quit file without dump");
     int ret = QMessageBox::question((QWidget*)this,
     QString{"Quit?"},
     QString{"Quit Basixmo (without dump)?"},
@@ -279,6 +279,12 @@ BxoMainWindowPayl::fill_menu(void)
     QMessageBox::Cancel);
     if (ret == QMessageBox::Ok)
       QApplication::exit();
+  });
+  auto objmenu = mb->addMenu("&Object");
+  objmenu->addAction("&Show", [=]
+  {
+    BXO_BACKTRACELOG("*menu object show");
+#warning incomplete menu object show
   });
 } // end BxoMainWindowPayl::fill_menu
 
