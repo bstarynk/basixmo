@@ -179,8 +179,10 @@ BxoVal::to_json(BxoDumper&du) const
   return BxoJson::nullSingleton();
 } // end BxoVal::to_json
 
+
+
 BxoVal
-BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
+BxoVal::from_json(BxoJsonProcessor& bxj, const BxoJson&js)
 {
   switch(js.type())
     {
@@ -192,7 +194,7 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
     case Json::stringValue:
       return BxoVString(js.asString());
     case Json::arrayValue:
-      return ld.val_from_json(js);
+      return bxj.val_from_json(js);
     case Json::objectValue:
     {
       if (js.isMember("oid"))
@@ -201,7 +203,7 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
           if (jid.isString())
             {
               auto idstr = jid.asString();
-              BxoObject* pob = ld.obj_from_idstr(idstr);
+              BxoObject* pob = bxj.obj_from_idstr(idstr);
               if (pob)
                 return BxoVObj(pob);
             }
@@ -211,7 +213,7 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
           const auto& jset = js["set"];
           if (jset.isArray())
             {
-              auto pset = BxoSet::load_set(ld,jset);
+              auto pset = BxoSet::load_set(bxj,jset);
               if (pset)
                 return BxoVSet(*pset);
             }
@@ -221,7 +223,7 @@ BxoVal::from_json(BxoLoader& ld, const BxoJson&js)
           const auto& jtup = js["tup"];
           if (jtup.isArray())
             {
-              auto ptup = BxoTuple::load_tuple(ld,jtup);
+              auto ptup = BxoTuple::load_tuple(bxj,jtup);
               if (ptup)
                 return BxoVTuple(*ptup);
             }

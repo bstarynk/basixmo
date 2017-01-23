@@ -1,6 +1,6 @@
--- basixmo_state.sql dump 2016 Nov 06 from basixmo_state.sqlite dumped by ./basixmo-dump-state.sh .....
+-- basixmo_state.sql dump 2017 Jan 23 from basixmo_state.sqlite dumped by ./basixmo-dump-state.sh .....
 
- --   Copyright (C) 2016 Basile Starynkevitch.
+ --   Copyright (C) 2017 Basile Starynkevitch.
  --  This sqlite3 dump file basixmo_state.sql is part of BASIXMO.
  --
  --  BASIXMO is free software; you can redistribute it and/or modify

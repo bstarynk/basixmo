@@ -49,7 +49,7 @@ BxoLoader::~BxoLoader()
 }
 
 const BxoSet*
-BxoSet::load_set(BxoLoader&ld, const BxoJson&js)
+BxoSet::load_set(BxoJsonProcessor&bxj, const BxoJson&js)
 {
   if (!js.isArray()) return nullptr;
   std::vector<std::shared_ptr<BxoObject>> vec;
@@ -68,7 +68,7 @@ BxoSet::load_set(BxoLoader&ld, const BxoJson&js)
                            << jcomp << " at ix=" << ix);
           throw std::runtime_error("BxoSet::load_set invalid jcomp");
         }
-      auto pob = ld.obj_from_idstr(jcomp.asString());
+      auto pob = bxj.obj_from_idstr(jcomp.asString());
       if (!pob)
         {
           BXO_BACKTRACELOG("load_set: bad jcomp="
@@ -82,7 +82,7 @@ BxoSet::load_set(BxoLoader&ld, const BxoJson&js)
 
 
 const BxoTuple*
-BxoTuple::load_tuple(BxoLoader&ld, const BxoJson&js)
+BxoTuple::load_tuple(BxoJsonProcessor&bxj, const BxoJson&js)
 {
   if (!js.isArray()) return nullptr;
   std::vector<std::shared_ptr<BxoObject>> vec;
@@ -101,12 +101,12 @@ BxoTuple::load_tuple(BxoLoader&ld, const BxoJson&js)
                            << jcomp << " at ix=" << ix);
           throw std::runtime_error("BxoTuple::load_tuple invalid jcomp");
         }
-      auto pob = ld.obj_from_idstr(jcomp.asString());
+      auto pob = bxj.obj_from_idstr(jcomp.asString());
       if (!pob)
         {
           BXO_BACKTRACELOG("load_set: bad jcomp="
                            << jcomp << " at ix=" << ix);
-          throw std::runtime_error("BxoSet::load_set bad jcomp");
+          throw std::runtime_error("BxoTuple::load_tuple bad jcomp");
         }
       vec.push_back(pob->shared_from_this());
     }

@@ -287,6 +287,7 @@ class BxoSet;
 class BxoTuple;
 class BxoDumper;
 class BxoLoader;
+class BxoJsonProcessor;
 
 #define BXO_DUMP_SCRIPT "basixmo-dump-state.sh"
 
@@ -462,7 +463,7 @@ public:
   inline BxoHash_t hash() const;
   BxoJson to_json(BxoDumper&) const;
   void scan_dump(BxoDumper&) const;
-  static BxoVal from_json(BxoLoader&, const BxoJson&);
+  static BxoVal from_json(BxoJsonProcessor&, const BxoJson&);
   void out(std::ostream&os) const;
   /// the is_XXX methods are testing the kind
   /// the as_XXX methods may throw an exception
@@ -682,8 +683,23 @@ public:
 
 
 
+class BxoJsonProcessor
+{
+  friend class BxoObject;
+  friend class BxoVal;
+protected:
+  BxoJsonProcessor() {};
+  virtual ~BxoJsonProcessor() {};
+public:
+  virtual  BxoObject* obj_from_idstr(const std::string&) =0;
+  BxoVal val_from_json(const BxoJson&js)
+  {
+    return BxoVal::from_json(*this,js);
+  };
+};        // end abstract class BxoJsonProcessor
 
-class BxoLoader
+
+class BxoLoader : public BxoJsonProcessor
 {
   friend class BxoObject;
   std::string _ld_dirname;
@@ -719,10 +735,6 @@ public:
   BxoObject* obj_from_idstr(const char*cs)
   {
     return obj_from_idstr(std::string(cs));
-  };
-  BxoVal val_from_json(const BxoJson&js)
-  {
-    return BxoVal::from_json(*this,js);
   };
 };        // end BxoLoader
 
@@ -816,7 +828,7 @@ class BxoSet : public BxoSequence
   BxoSet(BxoHash_t h, unsigned len, const std::shared_ptr<BxoObject> * seq)
     : BxoSequence(h, len, seq) {};
 public:
-  static const BxoSet*load_set(BxoLoader&, const BxoJson&);
+  static const BxoSet*load_set(BxoJsonProcessor&, const BxoJson&);
   bool same_set(const BxoSet& r) const
   {
     return same_sequence(r);
@@ -849,7 +861,7 @@ class BxoTuple : public BxoSequence
     return h?h:(((ln*491)&0xffff)+31);
   }
 public:
-  static const BxoTuple*load_tuple(BxoLoader&, const BxoJson&);
+  static const BxoTuple*load_tuple(BxoJsonProcessor&, const BxoJson&);
   bool same_tuple(const BxoTuple& r) const
   {
     return same_sequence(r);

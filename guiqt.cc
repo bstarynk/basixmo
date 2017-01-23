@@ -32,6 +32,7 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QCloseEvent>
+#include <QMimeData>
 
 class BxoMainWindowPayl;
 class BxoMainGraphicsScenePayl;
@@ -81,6 +82,85 @@ public:
   };
 };        // end BxoMainWindowPayl
 
+
+class BxoMimeValueData final : public QMimeData
+{
+  Q_OBJECT
+  const BxoVal _dataval;
+public:
+  static constexpr const char* own_mime_type = "text/x-json-bxo";
+  static constexpr const char* bxoformatstr = "\"@bxoformat\"";
+  static constexpr const char* bxoformatversion = "Bxo2017A";
+  BxoMimeValueData(const BxoVal);
+  BxoMimeValueData(const BxoMimeValueData&) = default;
+  BxoMimeValueData(BxoMimeValueData&&) = default;
+  ~BxoMimeValueData();
+  bool hasFormat(const QString& mimeType) const;
+  QStringList formats() const;
+  const BxoVal bxoval() const
+  {
+    return _dataval;
+  };
+  static BxoMimeValueData* make_from_text(const std::string&str, const unsigned*plastoffset=nullptr);
+  static BxoMimeValueData* make_from_text(const QString& qs)
+  {
+    return make_from_text(qs.toStdString());
+  }
+};        // end BxoMimeValueData
+
+BxoMimeValueData::BxoMimeValueData(const BxoVal v)
+  : QMimeData(), _dataval(v)
+{
+};        // end BxoMimeValueData::BxoMimeValueData
+
+
+/// parse some string into a BxoMimeValueData; heuristically consider that as our JSON
+/// if the string starts with the characters (skipping whitespaces):  { "@bxoformat" :
+BxoMimeValueData*
+BxoMimeValueData::make_from_text(const std::string&str, const unsigned*plastoffset)
+{
+  BXO_VERBOSELOG("BxoMimeValueData::make_from_text start str=" << str);
+  if (str.empty()) return nullptr;
+  bool is_our_json = false;
+  int strsiz = str.size();
+  int curp = 0;
+  while (curp < strsiz && isspace(str[curp])) curp++;
+  if (curp == strsiz) return nullptr;
+  if (str[curp] == '{')
+    {
+      curp++;
+      while (curp < strsiz && isspace(str[curp])) curp++;
+      if (str[curp] == '"' && str[curp+1] == '@' && str.substr(curp, strlen(bxoformatstr)) == bxoformatstr)
+        {
+          curp += strlen(bxoformatstr);
+          while (curp < strsiz && isspace(str[curp])) curp++;
+          if (str[curp] == ':') is_our_json = true;
+        }
+    };
+
+};        // end BxoMimeValueData::make_from_text
+
+QStringList
+BxoMimeValueData::formats() const
+{
+  QStringList sl;
+  sl << "text/plain" << "text/html" <<  own_mime_type;
+  return sl;
+};        // end BxoMimeValueData::formats
+
+BxoMimeValueData::~BxoMimeValueData()
+{
+}; // end BxoMimeValueData::~BxoMimeValueData
+
+
+bool
+BxoMimeValueData::hasFormat(const QString& mimeType) const
+{
+  if (mimeType == QString {own_mime_type}) return true;
+  else if (mimeType == QString {"text/plain"}) return true;
+  else if (mimeType == QString {"text/html"}) return true;
+  return false;
+} // end of BxoMimeValueData
 
 
 class BxoAnyShow
