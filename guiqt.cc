@@ -1,6 +1,6 @@
 // file guiqt.cc - the Graphical User Interface using Qt5
 
-/**   Copyright (C)  2016 Basile Starynkevitch
+/**   Copyright (C)  2016 - 2017 Basile Starynkevitch
 
       BASIXMO is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ class BxoMainWindowPayl :public QMainWindow,  public BxoPayload
   Q_OBJECT
   QGraphicsView* _graview;
   std::shared_ptr<BxoObject> _grascenob;
+  bool _askclose;
 protected:
   void fill_menu(void);
 public:
@@ -74,6 +75,10 @@ public:
     throw std::logic_error("BxoMainWindowPayl::scan_payload_content");
   };
   virtual void closeEvent(QCloseEvent*ev);
+  void ask_when_closing(bool askme)
+  {
+    _askclose = askme;
+  };
 };        // end BxoMainWindowPayl
 
 
@@ -280,7 +285,7 @@ BxoMainWindowPayl::fill_menu(void)
 
 
 BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own)
-  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
+  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr), _askclose(true)
 {
   BxoMainGraphicsScenePayl*grscenpy = nullptr;
   _grascenob = BxoObject::make_objref();
@@ -293,7 +298,7 @@ BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own)
 
 
 BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own, std::shared_ptr<BxoObject> grascenob)
-  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
+  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr), _askclose(true)
 {
   BxoMainGraphicsScenePayl*grscenpy = nullptr;
   if (!grascenob)
@@ -315,7 +320,7 @@ BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own, std::shared_ptr<BxoObject> g
 
 
 BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own, BxoMainGraphicsScenePayl*grascenpy)
-  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr)
+  : QMainWindow(), BxoPayload(*own,PayloadTag {}), _graview(nullptr), _askclose(true)
 {
   if (!grascenpy)
     {
@@ -332,7 +337,14 @@ BxoMainWindowPayl::BxoMainWindowPayl(BxoObject*own, BxoMainGraphicsScenePayl*gra
 void
 BxoMainWindowPayl::closeEvent(QCloseEvent*clev)
 {
-  BXO_BACKTRACELOG("close main window owner=" << owner());
+  BXO_BACKTRACELOG("MainWin.closeEvent close main window owner=" << owner() << " askclose is " << (_askclose?"true":"false"));
+  if (!_askclose)
+    {
+      BXO_VERBOSELOG("MainWin.closeEvent dont ask for closing main window " << this << " owner=" << owner());
+      clev->accept();
+      QMainWindow::closeEvent(clev);
+      return;
+    }
   int ret = QMessageBox::question((QWidget*)this,
                                   QString {"close and Quit?"},
                                   QString {"close and Quit Basixmo (without dump)?"},
@@ -407,7 +419,7 @@ BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
 
 BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl(BxoObject*own)
   : QGraphicsScene(), BxoPayload(*own,PayloadTag {}),
-    _shownobjmap(), _layout(Qt::Vertical)
+_shownobjmap(), _layout(Qt::Vertical)
 {
 } // end BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl
 
@@ -619,17 +631,24 @@ void bxo_gui_init(QApplication*qapp)
 } // end bxo_gui_init
 
 
-void bxo_gui_stop(QApplication*qapp)
+
+void
+bxo_gui_stop(QApplication*qapp)
 {
   BXO_BACKTRACELOG("bxo_gui_stop start qapp=" << qapp);
   BXO_ASSERT(qapp != nullptr, "no qapp");
   auto theguihset = BXO_VARPREDEF(the_GUI)->dyncast_payload<BxoHashsetPayload>();
   {
     auto pset = theguihset->vset().get_set();
-    BXO_VERBOSELOG("pset length=" << pset->length() << "; pset=" << pset);
+    BXO_VERBOSELOG("bxo_gui_stop pset length=" << pset->length() << "; pset=" << pset);
     for (auto pob: *pset)
       {
-        pob->dyncast_payload<BxoMainWindowPayl>()->close();
+        BXO_VERBOSELOG("bxo_gui_stop loop pob=" << pob);
+        auto winp = pob->dyncast_payload<BxoMainWindowPayl>();
+        BXO_ASSERT(winp != nullptr, "no winp");
+        BXO_VERBOSELOG("bxo_gui_stop winp=" << winp << " pob=" << pob);
+        winp->ask_when_closing(false);
+        winp->close();
         pob->reset_payload();
       }
   }
