@@ -214,6 +214,31 @@ BxoMimeValueData::make_from_text(const std::string&str,  unsigned*plastoffset)
         }
       return make_from_json(jv);
     }
+  char c=str[firstnonspace];
+  if (isalpha(c))
+    {
+      int p = firstnonspace;
+      while (p < strsiz && (c=str[firstnonspace])
+             && (isalnum(c) || c == '_'))
+        p++;
+      auto namstr = str.substr(firstnonspace,p-firstnonspace);
+      BXO_VERBOSELOG("BxoMimeValueData::make_from_text namstr=" << namstr);
+      // should find the name
+    }
+  else if (c=='_' && isdigit(str[firstnonspace+1]))
+    {
+      int p = firstnonspace+1;
+      while (p < strsiz && (c=str[firstnonspace])
+             && (isalnum(c)))
+        p++;
+      auto idstr = str.substr(firstnonspace,p-firstnonspace);
+      BXO_VERBOSELOG("BxoMimeValueData::make_from_text idstr=" << idstr);
+      // should find the object
+    }
+  else if (isdigit(c) || (c=='+' || c=='-' && isdigit(str[firstnonspace+1])))
+    {
+    }
+#warning BxoMimeValueData::make_from_text incomplete
 };        // end BxoMimeValueData::make_from_text
 
 
