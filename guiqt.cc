@@ -19,6 +19,7 @@
 #include "basixmo.h"
 #include <QObject>
 #include <QMainWindow>
+#include <QClipboard>
 #include <QSettings>
 #include <QTextEdit>
 #include <QGraphicsScene>
@@ -108,6 +109,7 @@ public:
     return make_from_text(qs.toStdString());
   }
   static BxoMimeValueData* make_from_json(const BxoJson&);
+  static BxoVal value_from_clipboard(QClipboard::Mode cmod = QClipboard::Clipboard);
 };        // end BxoMimeValueData
 
 
@@ -133,6 +135,30 @@ BxoMimeValueData::BxoMimeValueData(const BxoVal v)
 
 };        // end BxoMimeValueData::BxoMimeValueData
 
+BxoVal
+BxoMimeValueData::value_from_clipboard(QClipboard::Mode cmod)
+{
+  auto clipb = QGuiApplication::clipboard();
+  BXO_ASSERT(clipb != nullptr, "value_from_clipboard no clipboard");
+  auto mimdat = clipb->mimeData(cmod);
+  if (!mimdat)
+    {
+      BXO_BACKTRACELOG("BxoMimeValueData::value_from_clipboard no mime data for mode#" << (int)cmod);
+      return nullptr;
+    }
+  QString qtxt = mimdat->text();
+  if (mimdat->hasFormat(own_json_mime_type))
+    {
+      BXO_VERBOSELOG("value_from_clipboard own qtxt=" << qtxt.toStdString());
+    }
+  auto bxmv = make_from_text(qtxt);
+  BXO_ASSERT(bxmv != nullptr, "value_from_clipboard no bxmv for qtxt="<<qtxt.toStdString());
+  auto val = bxmv->bxoval();
+  BXO_VERBOSELOG("value_from_clipboard val=" << val);
+  delete bxmv;
+  return val;
+} // end of BxoMimeValueData::value_from_clipboard
+
 BxoObject*
 BxoMimeJsonProcessor::obj_from_idstr(const std::string&ids)
 {
@@ -155,11 +181,13 @@ BxoMimeValueData::make_from_text(const std::string&str,  unsigned*plastoffset)
   if (str.empty()) return nullptr;
   bool is_our_json = false;
   int strsiz = str.size();
+  int firstnonspace = 0;
   if (plastoffset) *plastoffset = 0;
   {
     int curp = 0;
     while (curp < strsiz && isspace(str[curp])) curp++;
     if (curp == strsiz) return nullptr;
+    firstnonspace = curp;
     if (str[curp] == '{')
       {
         curp++;
