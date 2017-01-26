@@ -150,7 +150,7 @@ void bxo_backtracestr_at (const char*fil, int lin, const std::string&str)
            fil, lin, thrname, (int) bxo_gettid (), timbuf, str.c_str());
   fflush (NULL);
   struct backtrace_state *btstate =
-  backtrace_create_state (NULL, 0, bxo_bt_err_callback, NULL);
+    backtrace_create_state (NULL, 0, bxo_bt_err_callback, NULL);
   if (btstate != NULL)
     {
       int count = 0;
