@@ -145,7 +145,7 @@ BxoHash_t BxoString::hash_cstring(const char*s, int ln)
 
 
 BxoJson
-BxoVal::to_json(BxoDumper&du) const
+BxoVal::to_json(BxoJsonEmitter&bje) const
 {
   switch (_kind)
     {
@@ -156,7 +156,7 @@ BxoVal::to_json(BxoDumper&du) const
     case BxoVKind::StringK:
       return BxoJson(_str->string());
     case BxoVKind::ObjectK:
-      if (du.is_dumpable(_obj))
+      if (bje.is_dumpable(_obj))
         {
           BxoJson job(Json::objectValue);
           job["oid"] = _obj->id_to_json();
@@ -166,13 +166,13 @@ BxoVal::to_json(BxoDumper&du) const
     case BxoVKind::SetK:
     {
       BxoJson job(Json::objectValue);
-      job["set"] = _set->sequence_to_json(du);
+      job["set"] = _set->sequence_to_json(bje);
       return job;
     };
     case BxoVKind::TupleK:
     {
       BxoJson job(Json::objectValue);
-      job["tup"] = _set->sequence_to_json(du);
+      job["tup"] = _set->sequence_to_json(bje);
       return job;
     };
     }
