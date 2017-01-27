@@ -287,7 +287,8 @@ class BxoSet;
 class BxoTuple;
 class BxoDumper;
 class BxoLoader;
-class BxoJsonProcessor;
+class BxoJsonProcessor;		// abstract "loader"-like
+class BxoJsonEmitter;		// abstract "dumper-like
 
 #define BXO_DUMP_SCRIPT "basixmo-dump-state.sh"
 
@@ -397,6 +398,7 @@ class BxoVal
   /// this is the shared object
   friend class BxoObject;
   /// the dumper
+  friend class BxoJsonEmitter;
   friend class BxoDumper;
 public:
   struct TagNone {};
@@ -461,8 +463,8 @@ public:
     return less_equal(v);
   };
   inline BxoHash_t hash() const;
-  BxoJson to_json(BxoDumper&) const;
-  void scan_dump(BxoDumper&) const;
+  BxoJson to_json(BxoJsonEmitter&) const;
+  void scan_dump(BxoJsonEmitter&) const;
   static BxoVal from_json(BxoJsonProcessor&, const BxoJson&);
   void out(std::ostream&os) const;
   /// the is_XXX methods are testing the kind
@@ -616,7 +618,10 @@ public:
 };        // end BxoVObj
 
 
-class BxoDumper
+class BxoJsonEmitter {
+};				// end class BxoJsonEmitter
+
+class BxoDumper : public BxoJsonEmitter
 {
   static constexpr const char* insert_object_sql =
     "INSERT INTO t_objects "
