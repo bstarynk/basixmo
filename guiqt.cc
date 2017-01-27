@@ -19,6 +19,7 @@
 #include "basixmo.h"
 #include <QObject>
 #include <QMainWindow>
+#include <QClipboard>
 #include <QSettings>
 #include <QTextEdit>
 #include <QGraphicsScene>
@@ -88,8 +89,9 @@ class BxoMimeValueData final : public QMimeData
   Q_OBJECT
   const BxoVal _dataval;
 public:
-  static constexpr const char* own_mime_type = "text/x-json-bxo";
-  static constexpr const char* bxoformatstr = "\"@bxoformat\"";
+  static constexpr const char* own_json_mime_type = "text/x-json-bxo";
+#define BXO_FORMAT_ATTR "@bxoformat"
+  static constexpr const char* bxoformatstr = "\"" BXO_FORMAT_ATTR "\"";
   static constexpr const char* bxoformatversion = "Bxo2017A";
   BxoMimeValueData(const BxoVal);
   BxoMimeValueData(const BxoMimeValueData&) = default;
@@ -101,50 +103,191 @@ public:
   {
     return _dataval;
   };
-  static BxoMimeValueData* make_from_text(const std::string&str, const unsigned*plastoffset=nullptr);
+  static BxoMimeValueData* make_from_text(const std::string&str,  unsigned*plastoffset=nullptr);
   static BxoMimeValueData* make_from_text(const QString& qs)
   {
     return make_from_text(qs.toStdString());
   }
+  static BxoMimeValueData* make_from_json(const BxoJson&);
+  static BxoVal value_from_clipboard(QClipboard::Mode cmod = QClipboard::Clipboard);
 };        // end BxoMimeValueData
+
+
+class BxoMimeJsonProcessor final : public BxoJsonProcessor
+{
+  BxoMimeValueData*_bmj_vd;
+  std::unordered_map<std::string,std::shared_ptr<BxoObject>> _bmj_idtoobjcache;
+
+public:
+  BxoMimeJsonProcessor(BxoMimeValueData*bvd) : BxoJsonProcessor(), _bmj_vd(bvd), _bmj_idtoobjcache() {};
+  ~BxoMimeJsonProcessor()
+  {
+    _bmj_vd=nullptr;
+    _bmj_idtoobjcache.clear();
+  };
+  virtual BxoObject* obj_from_idstr(const std::string&);
+};        // end class BxoMimeJsonProcessor
+
 
 BxoMimeValueData::BxoMimeValueData(const BxoVal v)
   : QMimeData(), _dataval(v)
 {
+
 };        // end BxoMimeValueData::BxoMimeValueData
+
+BxoVal
+BxoMimeValueData::value_from_clipboard(QClipboard::Mode cmod)
+{
+  auto clipb = QGuiApplication::clipboard();
+  BXO_ASSERT(clipb != nullptr, "value_from_clipboard no clipboard");
+  auto mimdat = clipb->mimeData(cmod);
+  if (!mimdat)
+    {
+      BXO_BACKTRACELOG("BxoMimeValueData::value_from_clipboard no mime data for mode#" << (int)cmod);
+      return nullptr;
+    }
+  QString qtxt = mimdat->text();
+  if (mimdat->hasFormat(own_json_mime_type))
+    {
+      BXO_VERBOSELOG("value_from_clipboard own qtxt=" << qtxt.toStdString());
+    }
+  auto bxmv = make_from_text(qtxt);
+  BXO_ASSERT(bxmv != nullptr, "value_from_clipboard no bxmv for qtxt="<<qtxt.toStdString());
+  auto val = bxmv->bxoval();
+  BXO_VERBOSELOG("value_from_clipboard val=" << val);
+  delete bxmv;
+  return val;
+} // end of BxoMimeValueData::value_from_clipboard
+
+BxoObject*
+BxoMimeJsonProcessor::obj_from_idstr(const std::string&ids)
+{
+  auto p = _bmj_idtoobjcache.find(ids);
+  if (p != _bmj_idtoobjcache.end())
+    return p->second.get();
+  BxoObject* ob =  BxoObject::find_from_idstr(ids);
+  if (!ob) return nullptr;
+  _bmj_idtoobjcache[ids] = ob->shared_from_this();
+  return ob;
+} // end BxoMimeJsonProcessor::obj_from_idstr
 
 
 /// parse some string into a BxoMimeValueData; heuristically consider that as our JSON
 /// if the string starts with the characters (skipping whitespaces):  { "@bxoformat" :
 BxoMimeValueData*
-BxoMimeValueData::make_from_text(const std::string&str, const unsigned*plastoffset)
+BxoMimeValueData::make_from_text(const std::string&str,  unsigned*plastoffset)
 {
   BXO_VERBOSELOG("BxoMimeValueData::make_from_text start str=" << str);
   if (str.empty()) return nullptr;
   bool is_our_json = false;
   int strsiz = str.size();
-  int curp = 0;
-  while (curp < strsiz && isspace(str[curp])) curp++;
-  if (curp == strsiz) return nullptr;
-  if (str[curp] == '{')
+  int firstnonspace = 0;
+  if (plastoffset) *plastoffset = 0;
+  {
+    int curp = 0;
+    while (curp < strsiz && isspace(str[curp])) curp++;
+    if (curp == strsiz) return nullptr;
+    firstnonspace = curp;
+    if (str[curp] == '{')
+      {
+        curp++;
+        while (curp < strsiz && isspace(str[curp])) curp++;
+        if (str[curp] == '"' && str[curp+1] == '@' && str.substr(curp, strlen(bxoformatstr)) == bxoformatstr)
+          {
+            curp += strlen(bxoformatstr);
+            while (curp < strsiz && isspace(str[curp])) curp++;
+            if (str[curp] == ':') is_our_json = true;
+          }
+      };
+  }
+  if (is_our_json)
     {
-      curp++;
-      while (curp < strsiz && isspace(str[curp])) curp++;
-      if (str[curp] == '"' && str[curp+1] == '@' && str.substr(curp, strlen(bxoformatstr)) == bxoformatstr)
+      Json::Reader jrd(Json::Features::strictMode());
+      BxoJson jv;
+      if (!jrd.parse(str,jv,false))
         {
-          curp += strlen(bxoformatstr);
-          while (curp < strsiz && isspace(str[curp])) curp++;
-          if (str[curp] == ':') is_our_json = true;
+          BXO_BACKTRACELOG("BxoMimeValueData::make_from_text parse failure"
+                           << ": " << jrd.getFormattedErrorMessages()
+                           << std::endl << "str=" << str
+                           << std::endl);
+          throw std::runtime_error("BxoMimeValueData::make_from_text Json parse failure");
         }
-    };
-
+      return make_from_json(jv);
+    }
+  char c=str[firstnonspace];
+  if (isalpha(c))
+    {
+      int p = firstnonspace;
+      while (p < strsiz && (c=str[firstnonspace])
+             && (isalnum(c) || c == '_'))
+        p++;
+      auto namstr = str.substr(firstnonspace,p-firstnonspace);
+      BXO_VERBOSELOG("BxoMimeValueData::make_from_text namstr=" << namstr);
+      // should find the name
+    }
+  else if (c=='_' && isdigit(str[firstnonspace+1]))
+    {
+      int p = firstnonspace+1;
+      while (p < strsiz && (c=str[firstnonspace])
+             && (isalnum(c)))
+        p++;
+      auto idstr = str.substr(firstnonspace,p-firstnonspace);
+      BXO_VERBOSELOG("BxoMimeValueData::make_from_text idstr=" << idstr);
+      // should find the object
+    }
+  else if (isdigit(c) || (c=='+' || c=='-' && isdigit(str[firstnonspace+1])))
+    {
+    }
+#warning BxoMimeValueData::make_from_text incomplete
 };        // end BxoMimeValueData::make_from_text
+
+
+
+BxoMimeValueData*
+BxoMimeValueData::make_from_json(const BxoJson& js)
+{
+  BXO_VERBOSELOG("BxoMimeValueData::make_from_json start js=" << js << std::endl);
+  if (!js.isObject() || !js.isMember(BXO_FORMAT_ATTR)
+      || js[BXO_FORMAT_ATTR].asString() != std::string{bxoformatversion})
+    {
+      BXO_BACKTRACELOG("BxoMimeValueData::make_from_json bad " BXO_FORMAT_ATTR " expecting " << bxoformatversion
+                       << std::endl << "js=" << js << std::endl);
+      throw std::runtime_error("BxoMimeValueData::make_from_json bad " BXO_FORMAT_ATTR);
+    }
+  {
+    BxoMimeJsonProcessor mjp{nullptr};
+    BxoVal val;
+    if (js.isMember("value"))
+      val = mjp.val_from_json(js["value"]);
+    else if (js.isMember("object"))
+      {
+        auto jo = js["object"];
+        if (jo.isString())
+          {
+            BxoObject* pob = nullptr;
+            auto ostr = jo.asString();
+            if (ostr.empty())
+              throw std::runtime_error("BxoMimeValueData::make_from_json empty object slot");
+            if (ostr[0] == '_')
+              pob = BxoObject::find_from_idstr(ostr);
+            else if (isalpha(ostr[0]))
+              pob = BxoObject::find_named_objptr(ostr);
+            if (pob)
+              val = BxoVObj(pob);
+          }
+      }
+    return new BxoMimeValueData(val);
+  }
+}
+// end BxoMimeValueData::make_from_json
+
+
 
 QStringList
 BxoMimeValueData::formats() const
 {
   QStringList sl;
-  sl << "text/plain" << "text/html" <<  own_mime_type;
+  sl << "text/plain" << "text/html" <<  own_json_mime_type;
   return sl;
 };        // end BxoMimeValueData::formats
 
@@ -156,7 +299,7 @@ BxoMimeValueData::~BxoMimeValueData()
 bool
 BxoMimeValueData::hasFormat(const QString& mimeType) const
 {
-  if (mimeType == QString {own_mime_type}) return true;
+  if (mimeType == QString {own_json_mime_type}) return true;
   else if (mimeType == QString {"text/plain"}) return true;
   else if (mimeType == QString {"text/html"}) return true;
   return false;
@@ -505,7 +648,7 @@ BxoMainGraphicsScenePayl::~BxoMainGraphicsScenePayl()
 
 BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl(BxoObject*own)
   : QGraphicsScene(), BxoPayload(*own,PayloadTag {}),
-_shownobjmap(), _layout(Qt::Vertical)
+    _shownobjmap(), _layout(Qt::Vertical)
 {
 } // end BxoMainGraphicsScenePayl::BxoMainGraphicsScenePayl
 

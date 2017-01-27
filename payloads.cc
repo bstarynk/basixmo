@@ -60,7 +60,7 @@ public:
   virtual void load_payload_content(const BxoJson&, BxoLoader&);
   BxoAssovalPayload(BxoObject& own)
     : BxoPayload(own, PayloadTag {}),
-  _asso() {};
+      _asso() {};
   ~BxoAssovalPayload()
   {
     _asso.clear();
@@ -149,7 +149,7 @@ bxoload_payload_assoval(BxoObject*obj,BxoLoader*ld)
 
 BxoHashsetPayload::BxoHashsetPayload(BxoObject& own)
   : BxoPayload(own, PayloadTag {}),
-_hset() {};
+    _hset() {};
 
 BxoHashsetPayload::~BxoHashsetPayload()
 {
@@ -249,7 +249,7 @@ public:
   virtual void load_payload_content(const BxoJson&, BxoLoader&);
   BxoSystemPayload(BxoObject& own)
     : BxoPayload(own, PayloadTag {}),
-  _predefpath("_bxo_predef.h"), _globalpath("_bxo_global.h") {};
+      _predefpath("_bxo_predef.h"), _globalpath("_bxo_global.h") {};
   ~BxoSystemPayload()
   {
     _predefpath.clear();

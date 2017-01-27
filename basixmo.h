@@ -52,7 +52,7 @@
 
 #include <utf8.h>
 
-#include "json/json.h"
+#include "jsoncpp/json/json.h"
 
 // common prefix bxo
 
@@ -582,9 +582,15 @@ public:
   BxoVSet(std::initializer_list<BxoObject*>il)
     : BxoVSet(std::vector<BxoObject*>(il)) {};
   template <typename... Args> BxoVSet(BxoObject*obp, Args ... args)
-    : BxoVSet(std::initializer_list<BxoObject*> {obp, args...}) {};
+    : BxoVSet(std::initializer_list<BxoObject*>
+  {
+    obp, args...
+  }) {};
   template <typename... Args> BxoVSet(std::shared_ptr<BxoObject> pob, Args ... args)
-    : BxoVSet(std::initializer_list<std::shared_ptr<BxoObject>> {pob, args...}) {};
+    : BxoVSet(std::initializer_list<std::shared_ptr<BxoObject>>
+  {
+    pob, args...
+  }) {};
 };        // end BxoVSet
 
 class BxoVTuple: public BxoVal
@@ -600,9 +606,15 @@ public:
   BxoVTuple(std::initializer_list<BxoObject*>il)
     : BxoVTuple(std::vector<BxoObject*>(il)) {};
   template <typename... Args> BxoVTuple(std::shared_ptr<BxoObject> pob,Args ... args)
-    : BxoVTuple(std::initializer_list<std::shared_ptr<BxoObject>> {pob,args...}) {};
+    : BxoVTuple(std::initializer_list<std::shared_ptr<BxoObject>>
+  {
+    pob,args...
+  }) {};
   template <typename... Args> BxoVTuple(BxoObject*obp,Args ... args)
-    : BxoVTuple(std::initializer_list<BxoObject*> {obp,args...}) {};
+    : BxoVTuple(std::initializer_list<BxoObject*>
+  {
+    obp,args...
+  }) {};
 };        // end BxoVTuple
 
 
@@ -1433,7 +1445,7 @@ public:
     : std::enable_shared_from_this<BxoObject>(),
       _hash(hash), _gcmark(false), _space(BxoSpace::PredefSp), _hid(hid), _loid(loid),
       _classob {nullptr},
-             _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
+      _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
     register_in_bucket(this);
     BXO_VERBOSELOG("BxoObject Predef strid:"<< strid() << " @" << (void*)this);
@@ -1442,14 +1454,14 @@ public:
     : std::enable_shared_from_this<BxoObject>(),
       _hash(hash), _gcmark(false), _space(BxoSpace::TransientSp), _hid(hid), _loid(loid),
       _classob {nullptr},
-             _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
+      _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
   };
   BxoObject(LoadedTag, BxoHash_t hash, Bxo_hid_t hid, Bxo_loid_t loid)
     : std::enable_shared_from_this<BxoObject>(),
       _hash(hash), _gcmark(false), _space(BxoSpace::GlobalSp), _hid(hid), _loid(loid),
       _classob {nullptr},
-             _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
+      _attrh {}, _compv {}, _payl {nullptr}, _mtime(0)
   {
     register_in_bucket(this);
     BXO_VERBOSELOG("BxoObject Loaded strid:"<< strid() << " @" << (void*)this);
